@@ -6,51 +6,376 @@
     <title>Sydney Meshcore Network Map</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
     <style>
+
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        html, body { width: 100%; height: 100%; overflow: hidden; font-family: Arial, sans-serif; }
-        #map { position: fixed; top: 0; left: 0; width: 100%; height: 100%; }
-        #loading { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); 
-                   background: rgba(0,0,0,0.9); color: white; padding: 40px 60px; border-radius: 15px; 
-                   z-index: 10000; text-align: center; }
-        .spinner { border: 5px solid #f3f3f3; border-top: 5px solid #667eea; border-radius: 50%; 
-                   width: 50px; height: 50px; animation: spin 1s linear infinite; margin: 20px auto; }
+        html, body { width: 100%; height: 100%; overflow: hidden; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; }
+        #map { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; }
+        
+        /* Loading Screen */
+        #loading { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.9); color: white; padding: 40px 60px; border-radius: 15px; z-index: 10000; text-align: center; box-shadow: 0 8px 32px rgba(0,0,0,0.8); }
+        .spinner { border: 5px solid #f3f3f3; border-top: 5px solid #667eea; border-radius: 50%; width: 50px; height: 50px; animation: spin 1s linear infinite; margin: 20px auto; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        
+        /* Info Panel (Left) */
+        #info-panel { position: fixed; top: 10px; left: 10px; width: 320px; max-height: calc(100vh - 20px); background: rgba(0,0,0,0.85); color: #fff; border-radius: 10px; padding: 15px; z-index: 1000; font-size: 13px; box-shadow: 0 4px 20px rgba(0,0,0,0.5); overflow-y: auto; backdrop-filter: blur(10px); }
+        #info-panel::-webkit-scrollbar { width: 8px; }
+        #info-panel::-webkit-scrollbar-thumb { background: rgba(102,126,234,0.5); border-radius: 4px; }
+        #info-panel h4 { color: #64b5f6; font-size: 14px; margin: 15px 0 10px 0; padding-bottom: 5px; border-bottom: 1px solid rgba(255,255,255,0.2); }
+        #info-panel h4:first-of-type { margin-top: 0; }
+        #info-panel hr { border: none; border-top: 1px solid rgba(255,255,255,0.1); margin: 12px 0; }
+        #info-panel label { display: block; margin: 5px 0; cursor: pointer; font-size: 12px; }
+        #info-panel input[type="checkbox"], #info-panel input[type="radio"] { margin-right: 8px; cursor: pointer; }
+        #node-search { width: 100%; padding: 8px; font-size: 12px; border: 1px solid rgba(255,255,255,0.2); border-radius: 5px; background: rgba(255,255,255,0.05); color: #e0e0e0; }
+        #node-search:focus { outline: none; border-color: #667eea; background: rgba(255,255,255,0.1); }
+        #search-results { max-height: 150px; overflow-y: auto; margin-top: 8px; font-size: 11px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 5px; display: none; padding: 5px; }
+        .search-result-item { padding: 6px 8px; cursor: pointer; border-radius: 3px; margin: 2px 0; }
+        .search-result-item:hover { background: rgba(102,126,234,0.5); }
+        
+        /* Stats Dashboard (Right) */
+        #stats-dashboard { position: fixed; top: 10px; right: 10px; width: 350px; max-height: calc(100vh - 20px); background: rgba(0,0,0,0.85); color: #fff; border-radius: 10px; z-index: 1000; font-size: 13px; box-shadow: 0 4px 20px rgba(0,0,0,0.5); overflow: hidden; backdrop-filter: blur(10px); }
+        #stats-header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 15px; font-weight: bold; font-size: 16px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
+        #stats-header:hover { background: linear-gradient(135deg, #7e92f7 0%, #8d5bb5 100%); }
+        #stats-toggle { font-size: 20px; transition: transform 0.3s; }
+        .collapsed #stats-toggle { transform: rotate(180deg); }
+        .collapsed #stats-content { display: none; }
+        #stats-content { max-height: calc(100vh - 120px); overflow-y: auto; padding: 15px; }
+        #stats-content::-webkit-scrollbar { width: 10px; }
+        #stats-content::-webkit-scrollbar-thumb { background: linear-gradient(180deg, #667eea 0%, #764ba2 100%); border-radius: 5px; }
+        .stat-section { margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        .stat-section:last-child { border-bottom: none; }
+        .stat-title { font-size: 14px; font-weight: bold; color: #64b5f6; margin-bottom: 10px; }
+        .stat-row { display: flex; justify-content: space-between; padding: 5px 0; font-size: 12px; }
+        .stat-label { color: #bbb; }
+        .stat-value { font-weight: bold; color: #fff; text-align: right; }
+        .stat-value.good { color: #4caf50; }
+        .stat-value.warning { color: #ff9800; }
+        .stat-value.critical { color: #f44336; }
+        
+        /* Mobile */
+        @media (max-width: 768px) {
+            #info-panel, #stats-dashboard { display: none; }
+            #info-panel.mobile-visible, #stats-dashboard.mobile-visible { display: block; width: 90%; left: 5%; right: 5%; max-height: 80vh; }
+            #mobile-toggle, #mobile-stats-toggle { display: block !important; }
+        }
+        #mobile-toggle, #mobile-stats-toggle { display: none; position: fixed; z-index: 10000; color: white; border: none; border-radius: 8px; padding: 12px 16px; font-size: 16px; font-weight: bold; cursor: pointer; box-shadow: 0 3px 10px rgba(0,0,0,0.6); }
+        #mobile-toggle { top: 10px; left: 10px; background: #2196F3; }
+        #mobile-stats-toggle { top: 10px; right: 10px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+
     </style>
 </head>
 <body>
     <div id="loading"><div>Loading Network Map...</div><div class="spinner"></div></div>
     <div id="map"></div>
+    
+    <!-- Info Panel (Left) -->
+    <div id="info-panel">
+        <div style="text-align: center; margin-bottom: 15px; padding: 10px; background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); border-radius: 8px;">
+            <div style="font-family: 'Impact', 'Arial Black', sans-serif; font-size: 28px; font-weight: 900; font-style: italic; color: #ffffff; text-transform: uppercase; text-shadow: 2px 2px 4px rgba(0,0,0,0.8);">CoreSense</div>
+        </div>
+        
+        <h4>🗺️ Sydney Meshcore Mesh Map</h4>
+        <div style="font-size: 12px; margin-bottom: 10px;">
+            <div style="display: flex; justify-content: space-between; padding: 3px 0;">
+                <span style="color: #bbb;">Generated:</span>
+                <span id="generated-time" style="color: #fff; font-weight: 500;">Loading...</span>
+            </div>
+        </div>
+        
+        <hr>
+        
+        <h4>🎯 Node Types</h4>
+        <div style="font-size: 11px; line-height: 1.3;">
+            <label><input type="checkbox" id="show-users" checked onchange="toggleNodeType('users', this.checked)"><span style="color: #3388ff;">● Users: <span id="user-count">0</span></span></label>
+            <label style="margin-left: 18px;"><input type="checkbox" id="show-inactive-users" checked onchange="toggleInactiveNodes('users', this.checked)"><span style="color: #808080;">Inactive: <span id="inactive-user-count">0</span></span></label>
+            <label><input type="checkbox" id="show-repeaters" checked onchange="toggleNodeType('repeaters', this.checked)"><span style="color: #ff3333;">● Repeaters: <span id="repeater-count">0</span></span></label>
+            <label style="margin-left: 18px;"><input type="checkbox" id="show-inactive-repeaters" checked onchange="toggleInactiveNodes('repeaters', this.checked)"><span style="color: #808080;">Inactive: <span id="inactive-repeater-count">0</span></span></label>
+            <label><input type="checkbox" id="show-room-servers" checked onchange="toggleNodeType('roomservers', this.checked)"><span style="color: #33cc33;">● Room Servers: <span id="room-server-count">0</span></span></label>
+            <label style="margin-left: 18px;"><input type="checkbox" id="show-inactive-roomservers" checked onchange="toggleInactiveNodes('roomservers', this.checked)"><span style="color: #808080;">Inactive: <span id="inactive-roomserver-count">0</span></span></label>
+            <label><input type="checkbox" id="show-unknown" checked onchange="toggleNodeType('unknown', this.checked)"><span style="color: #808080;">● Unknown: <span id="unknown-count">0</span></span></label>
+        </div>
+        
+        <hr>
+        
+        <h4>🔗 Link Types</h4>
+        <div style="font-size: 12px;">
+            <label><input type="checkbox" id="show-rf-links" checked onchange="toggleLinks('rf', this.checked)">RF Links</label>
+            <label><input type="checkbox" id="show-route-neighbours" checked onchange="toggleLinks('route', this.checked)">Route Neighbours</label>
+        </div>
+        
+        <hr>
+        
+        <h4>⚙️ Options</h4>
+        <div style="font-size: 12px;">
+            <label><input type="checkbox" id="show-coverage" checked onchange="toggleCoverage(this.checked)">Show Coverage Dots</label>
+        </div>
+        
+        <hr>
+        
+        <h4>🗺️ Map Tiles</h4>
+        <div style="font-size: 12px;">
+            <label><input type="radio" name="map-tile" value="OpenStreetMap" checked onchange="changeMapTile(this.value)">OpenStreetMap</label>
+            <label><input type="radio" name="map-tile" value="Satellite" onchange="changeMapTile(this.value)">Satellite View</label>
+            <label><input type="radio" name="map-tile" value="Topographic" onchange="changeMapTile(this.value)">Topographic Map</label>
+        </div>
+        
+        <hr>
+        
+        <h4>🔍 Search Nodes</h4>
+        <input type="text" id="node-search" placeholder="Search by name or prefix...">
+        <div id="search-results"></div>
+    </div>
+    
+    <!-- Stats Dashboard (Right) -->
+    <div id="stats-dashboard">
+        <div id="stats-header" onclick="toggleStats()">
+            <span>📊 Network Statistics</span>
+            <span id="stats-toggle">▼</span>
+        </div>
+        <div id="stats-content">
+            <!-- Populated by JavaScript -->
+        </div>
+    </div>
+    
+    <!-- Mobile Buttons -->
+    <button id="mobile-toggle" onclick="toggleMobilePanel()">ℹ️ Info</button>
+    <button id="mobile-stats-toggle" onclick="toggleMobileStats()">📊 Stats</button>
+
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
     <script>
-        fetch('network_map_data.json')
-            .then(r => r.json())
-            .then(data => {
-                document.getElementById('loading').style.display = 'none';
-                const lats = [], lons = [];
-                Object.values(data.nodes || {}).forEach(n => { 
-                    if (n.lat && n.lon) { lats.push(n.lat); lons.push(n.lon); }
-                });
-                const lat = lats.length ? lats.reduce((a,b)=>a+b)/lats.length : -33.8688;
-                const lon = lons.length ? lons.reduce((a,b)=>a+b)/lons.length : 151.2093;
-                const map = L.map('map').setView([lat, lon], 11);
-                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {maxZoom: 18}).addTo(map);
-                Object.entries(data.nodes || {}).forEach(([k,n]) => {
-                    if (n.lat && n.lon) {
-                        const color = n.type === 1 ? '#3388ff' : n.type === 2 ? '#ff3333' : n.type === 3 ? '#33cc33' : '#808080';
-                        L.circleMarker([n.lat, n.lon], {radius: 8, fillColor: color, color: '#fff', weight: 2, fillOpacity: 0.8})
-                            .addTo(map).bindPopup('<b>' + (n.name || 'Unknown') + '</b><br>Type: ' + (n.type || 0));
-                    }
-                });
-                (data.links || []).forEach(link => {
-                    const from = Object.values(data.nodes).find(n => n.name && k.startsWith(link.from_prefix));
-                    const to = data.nodes[link.to_pubkey];
-                    if (from && to && from.lat && to.lat) {
-                        const snr = link.snr || 0;
-                        const color = snr > 0 ? '#4caf50' : snr > -5 ? '#ffc107' : '#f44336';
-                        L.polyline([[from.lat, from.lon], [to.lat, to.lon]], {color: color, weight: 3, opacity: 0.6}).addTo(map);
-                    }
+
+        window.mapObj = null;
+        window.data = null;
+        window.markers = {};
+        window.links = {rf: [], route: []};
+        window.coverage = [];
+        window.currentTile = null;
+        
+        fetch('network_map_data.json').then(r => r.json()).then(loadedData => {
+            window.data = loadedData;
+            document.getElementById('loading').style.display = 'none';
+            initMap();
+            renderStats();
+            setupSearch();
+            if (data.metadata && data.metadata.generated) {
+                document.getElementById('generated-time').textContent = data.metadata.generated;
+            }
+        }).catch(err => {
+            document.getElementById('loading').innerHTML = '<h2 style="color:#f44;">Error Loading Data</h2><p>' + err.message + '</p>';
+        });
+        
+        function initMap() {
+            const lats = [], lons = [];
+            Object.values(data.nodes || {}).forEach(n => { if (n.lat && n.lon) { lats.push(n.lat); lons.push(n.lon); }});
+            const lat = lats.length ? lats.reduce((a,b)=>a+b)/lats.length : -33.8688;
+            const lon = lons.length ? lons.reduce((a,b)=>a+b)/lons.length : 151.2093;
+            
+            window.mapObj = L.map('map', {preferCanvas: true}).setView([lat, lon], 11);
+            window.currentTile = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {maxZoom: 18}).addTo(window.mapObj);
+            
+            renderLinks();
+            renderCoverage();
+            renderNodes();
+        }
+        
+        function renderNodes() {
+            let counts = {users: 0, repeaters: 0, roomservers: 0, unknown: 0, inactiveUsers: 0, inactiveRepeaters: 0, inactiveRoomservers: 0};
+            Object.entries(data.nodes || {}).forEach(([key, node]) => {
+                if (!node.lat || !node.lon) return;
+                const type = node.type === 1 ? 'users' : node.type === 2 ? 'repeaters' : node.type === 3 ? 'roomservers' : 'unknown';
+                const inactive = node.last_seen && isOld(node.last_seen);
+                const color = node.type === 1 ? '#3388ff' : node.type === 2 ? '#ff3333' : node.type === 3 ? '#33cc33' : '#808080';
+                
+                counts[type]++;
+                if (inactive) counts['inactive' + type.charAt(0).toUpperCase() + type.slice(1)]++;
+                
+                const marker = L.circleMarker([node.lat, node.lon], {
+                    radius: 8, fillColor: color, color: '#fff', weight: 2, fillOpacity: inactive ? 0.4 : 0.8,
+                    className: `node-${type} ${inactive ? 'inactive' : 'active'}`
+                }).addTo(window.mapObj);
+                
+                let popup = `<div style="min-width:200px;"><h3 style="margin:0 0 10px;color:#333;font-size:16px;">${node.name || 'Unknown'}</h3>`;
+                popup += `<p style="margin:5px 0;font-size:13px;"><b>Type:</b> ${getTypeName(node.type)}</p>`;
+                popup += `<p style="margin:5px 0;font-size:13px;"><b>Prefix:</b> ${key.substring(0,4)}</p>`;
+                if (node.elevation) popup += `<p style="margin:5px 0;font-size:13px;"><b>Elevation:</b> ${node.elevation.toFixed(0)} m</p>`;
+                if (node.antenna_height) popup += `<p style="margin:5px 0;font-size:13px;"><b>Antenna:</b> ${node.antenna_height.toFixed(1)} m AGL</p>`;
+                if (node.voltage) popup += `<p style="margin:5px 0;font-size:13px;"><b>Battery:</b> ${node.voltage.toFixed(2)} V</p>`;
+                if (node.last_seen) popup += `<p style="margin:5px 0;font-size:13px;"><b>Last Seen:</b> ${node.last_seen}</p>`;
+                popup += `</div>`;
+                marker.bindPopup(popup);
+                
+                window.markers[key] = {marker, node, type, inactive};
+            });
+            
+            document.getElementById('user-count').textContent = counts.users;
+            document.getElementById('inactive-user-count').textContent = counts.inactiveUsers;
+            document.getElementById('repeater-count').textContent = counts.repeaters;
+            document.getElementById('inactive-repeater-count').textContent = counts.inactiveRepeaters;
+            document.getElementById('room-server-count').textContent = counts.roomservers;
+            document.getElementById('inactive-roomserver-count').textContent = counts.inactiveRoomservers;
+            document.getElementById('unknown-count').textContent = counts.unknown;
+        }
+        
+        function renderLinks() {
+            (data.links || []).forEach(link => {
+                const from = findNodeByPrefix(link.from_prefix);
+                const to = data.nodes[link.to_pubkey];
+                if (!from || !to || !from.lat || !to.lat) return;
+                
+                const snr = link.snr || 0;
+                const color = snrToColor(snr);
+                const type = link.type || 'rf';
+                
+                const line = L.polyline([[from.lat, from.lon], [to.lat, to.lon]], {
+                    color: color, weight: type === 'route' ? 2 : 3, opacity: 0.6,
+                    dashArray: type === 'route' ? '5,10' : null, className: `link-${type}`
+                }).addTo(window.mapObj);
+                
+                line.bindPopup(`<div style="font-size:13px;"><b>Link:</b> ${from.name || '?'} → ${to.name || '?'}<br><b>Type:</b> ${type.toUpperCase()}<br><b>SNR:</b> ${snr.toFixed(1)} dB</div>`);
+                window.links[type].push(line);
+            });
+        }
+        
+        function renderCoverage() {
+            Object.entries(data.coverage || {}).forEach(([key, points]) => {
+                points.forEach(pt => {
+                    const circle = L.circleMarker([pt.lat, pt.lon], {
+                        radius: 3, fillColor: 'rgba(102,126,234,0.3)', color: 'rgba(102,126,234,0.5)',
+                        weight: 1, fillOpacity: 0.3, className: 'coverage-dot'
+                    }).addTo(window.mapObj);
+                    window.coverage.push(circle);
                 });
             });
+        }
+        
+        function renderStats() {
+            const meta = data.metadata || {};
+            let html = `<div class="stat-section"><div class="stat-title">🌐 Network Overview</div>`;
+            html += `<div class="stat-row"><span class="stat-label">Total Nodes:</span><span class="stat-value">${meta.total_nodes || 0}</span></div>`;
+            html += `<div class="stat-row"><span class="stat-label">Total Links:</span><span class="stat-value">${meta.total_links || 0}</span></div>`;
+            html += `<div class="stat-row"><span class="stat-label">Coverage Area:</span><span class="stat-value">${meta.coverage_area ? meta.coverage_area.toFixed(1) + ' km²' : 'N/A'}</span></div></div>`;
+            
+            if (meta.network_health) {
+                const h = meta.network_health;
+                html += `<div class="stat-section"><div class="stat-title">💚 Network Health</div>`;
+                html += `<div class="stat-row"><span class="stat-label">Avg SNR:</span><span class="stat-value ${h.avg_snr > 0 ? 'good' : 'warning'}">${h.avg_snr ? h.avg_snr.toFixed(1) + ' dB' : 'N/A'}</span></div>`;
+                html += `<div class="stat-row"><span class="stat-label">Avg Latency:</span><span class="stat-value">${h.avg_latency ? h.avg_latency.toFixed(2) + 's' : 'N/A'}</span></div>`;
+                html += `<div class="stat-row"><span class="stat-label">Isolated Nodes:</span><span class="stat-value ${h.isolated_nodes === 0 ? 'good' : 'warning'}">${h.isolated_nodes || 0}</span></div></div>`;
+            }
+            
+            document.getElementById('stats-content').innerHTML = html;
+        }
+        
+        function setupSearch() {
+            const search = document.getElementById('node-search');
+            const results = document.getElementById('search-results');
+            search.addEventListener('input', e => {
+                const q = e.target.value.toLowerCase().trim();
+                if (q.length < 2) { results.style.display = 'none'; return; }
+                const matches = [];
+                Object.entries(window.markers).forEach(([key, data]) => {
+                    const name = (data.node.name || '').toLowerCase();
+                    const prefix = key.substring(0, 4).toLowerCase();
+                    if (name.includes(q) || prefix.includes(q)) matches.push({key, data});
+                });
+                if (matches.length) {
+                    results.innerHTML = matches.slice(0, 10).map(m => 
+                        `<div class="search-result-item" onclick="flyToNode('${m.key}')">${m.data.node.name || 'Unknown'} (${m.key.substring(0,4)})</div>`
+                    ).join('');
+                    results.style.display = 'block';
+                } else {
+                    results.innerHTML = '<div style="padding:5px;color:#888;">No results</div>';
+                    results.style.display = 'block';
+                }
+            });
+        }
+        
+        function flyToNode(key) {
+            const m = window.markers[key];
+            if (m) {
+                window.mapObj.flyTo(m.marker.getLatLng(), 15);
+                m.marker.openPopup();
+                document.getElementById('search-results').style.display = 'none';
+                document.getElementById('node-search').value = '';
+            }
+        }
+        
+        function toggleStats() { document.getElementById('stats-dashboard').classList.toggle('collapsed'); }
+        
+        function toggleNodeType(type, show) {
+            Object.values(window.markers).forEach(m => {
+                if (m.type === type) show ? window.mapObj.addLayer(m.marker) : window.mapObj.removeLayer(m.marker);
+            });
+        }
+        
+        function toggleInactiveNodes(type, show) {
+            Object.values(window.markers).forEach(m => {
+                if (m.type === type && m.inactive) show ? window.mapObj.addLayer(m.marker) : window.mapObj.removeLayer(m.marker);
+            });
+        }
+        
+        function toggleLinks(type, show) {
+            window.links[type].forEach(link => show ? window.mapObj.addLayer(link) : window.mapObj.removeLayer(link));
+        }
+        
+        function toggleCoverage(show) {
+            window.coverage.forEach(c => show ? window.mapObj.addLayer(c) : window.mapObj.removeLayer(c));
+        }
+        
+        function changeMapTile(type) {
+            if (window.currentTile) window.mapObj.removeLayer(window.currentTile);
+            let url, attr;
+            if (type === 'Satellite') {
+                url = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
+                attr = '&copy; Esri';
+            } else if (type === 'Topographic') {
+                url = 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png';
+                attr = '&copy; OpenTopoMap';
+            } else {
+                url = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
+                attr = '&copy; OpenStreetMap';
+            }
+            window.currentTile = L.tileLayer(url, {attribution: attr, maxZoom: 18}).addTo(window.mapObj);
+        }
+        
+        function toggleMobilePanel() {
+            const panel = document.getElementById('info-panel');
+            panel.classList.toggle('mobile-visible');
+            document.getElementById('stats-dashboard').classList.remove('mobile-visible');
+        }
+        
+        function toggleMobileStats() {
+            const panel = document.getElementById('stats-dashboard');
+            panel.classList.toggle('mobile-visible');
+            document.getElementById('info-panel').classList.remove('mobile-visible');
+        }
+        
+        function getTypeName(type) {
+            return {0: 'Unknown', 1: 'User', 2: 'Repeater', 3: 'Room Server'}[type] || 'Unknown';
+        }
+        
+        function isOld(dateStr) { return false; } // Simplified - enhance if needed
+        
+        function findNodeByPrefix(prefix) {
+            for (const [key, node] of Object.entries(data.nodes || {})) {
+                if (key.startsWith(prefix)) return node;
+            }
+            return null;
+        }
+        
+        function snrToColor(snr) {
+            const n = Math.max(-20, Math.min(5, snr));
+            const norm = (n + 20) / 25.0;
+            let r, g;
+            if (norm < 0.5) {
+                r = 255;
+                g = Math.floor(255 * norm * 2);
+            } else {
+                r = Math.floor(255 * (1 - (norm - 0.5) * 2));
+                g = 255;
+            }
+            return '#' + r.toString(16).padStart(2,'0') + g.toString(16).padStart(2,'0') + '00';
+        }
+
     </script>
 </body>
 </html>
