@@ -1308,8 +1308,11 @@
                 
                 // Update statistics display
                 if (typeof calculateStatistics === 'function') {
+                    console.log('Calling calculateStatistics...');
                     calculateStatistics();
                     console.log('Statistics updated from network data');
+                } else {
+                    console.error('calculateStatistics function not found!');
                 }
             })
             .catch(error => {
@@ -1388,69 +1391,105 @@
         }
         
         console.log('Rendering network visualization from JSON data...');
+        console.log('nodeData count:', Object.keys(nodeData).length);
+        console.log('routeNeighborPairs count:', routeNeighborPairs.length);
         
         // Create a feature group for network elements
         var networkGroup = window.L.featureGroup();
         
-        // Render nodes as markers
+        // Render nodes as markers with awesome-markers
         var nodeCount = 0;
         for (var nodeName in nodeData) {
             var node = nodeData[nodeName];
-            if (node.lat !== undefined && node.lon !== undefined) {
-                // Create a simple circle marker for each node
-                var marker = window.L.circleMarker([node.lat, node.lon], {
-                    radius: 8,
-                    fillColor: node.type === 2 ? '#FF5733' : (node.type === 3 ? '#3366FF' : '#33FF99'),
-                    color: '#000',
-                    weight: 1,
-                    opacity: 0.8,
-                    fillOpacity: 0.6
-                });
-                
-                // Add popup with node info
-                var popupText = '<b>' + nodeName + '</b><br/>';
-                popupText += 'Type: ' + (node.type === 1 ? 'User' : node.type === 2 ? 'Repeater' : node.type === 3 ? 'Room Server' : 'Unknown') + '<br/>';
-                if (node.status) {
-                    popupText += 'SNR: ' + (node.status.snr || 'N/A') + ' dB<br/>';
+            if (node.lat !== undefined && node.lon !== undefined && node.lat !== 0 && node.lon !== 0) {
+                // Determine icon and color based on node type
+                var icon, color;
+                if (node.type === 2) {
+                    // Repeater
+                    icon = 'repeat';
+                    color = 'red';
+                } else if (node.type === 3) {
+                    // Room Server
+                    icon = 'server';
+                    color = 'blue';
+                } else {
+                    // User device
+                    icon = 'mobile';
+                    color = 'green';
                 }
                 
-                marker.bindPopup(popupText);
+                // Create awesome-marker
+                var awesomeIcon = window.L.AwesomeMarkers.icon({
+                    icon: icon,
+                    prefix: 'fa',
+                    markerColor: color,
+                    iconColor: 'white'
+                });
+                
+                var marker = window.L.marker([node.lat, node.lon], {icon: awesomeIcon});
+                
+                // Add popup with node info - will open on click
+                var popupContent = '<div style="width: 200px;"><b>' + nodeName + '</b><br/>' +
+                    'Type: ' + (node.type === 1 ? 'User' : node.type === 2 ? 'Repeater' : node.type === 3 ? 'Room Server' : 'Unknown') + '<br/>' +
+                    'Lat: ' + node.lat.toFixed(6) + '<br/>' +
+                    'Lon: ' + node.lon.toFixed(6) + '<br/>';
+                
+                if (node.status) {
+                    popupContent += 'SNR: ' + (node.status.snr || 'N/A') + ' dB<br/>';
+                }
+                
+                popupContent += '</div>';
+                
+                marker.bindPopup(popupContent);
+                marker.on('click', function(e) {
+                    e.target.openPopup();
+                });
+                
                 networkGroup.addLayer(marker);
                 nodeCount++;
             }
         }
         
-        // Render links as polylines
-        var linkCount = 0;
-        if (routePathToPair && routePathToPair.length > 0) {
-            for (var i = 0; i < routePathToPair.length; i++) {
-                var linkPath = routePathToPair[i];
-                if (linkPath && linkPath.length > 1) {
-                    // Convert path coordinates to Leaflet format
-                    var latLngs = [];
-                    for (var j = 0; j < linkPath.length; j++) {
-                        if (linkPath[j] && linkPath[j].length === 2) {
-                            latLngs.push([linkPath[j][0], linkPath[j][1]]);
-                        }
-                    }
-                    
-                    if (latLngs.length > 1) {
-                        var polyline = window.L.polyline(latLngs, {
-                            color: '#888888',
-                            weight: 2,
-                            opacity: 0.6,
-                            dashArray: '5, 5'
-                        });
-                        networkGroup.addLayer(polyline);
-                        linkCount++;
-                    }
+        console.log('Rendered ' + nodeCount + ' node markers');
+        
+        // Render routes as polylines using route_neighbor_pairs
+        var routeCount = 0;
+        if (routeNeighborPairs && routeNeighborPairs.length > 0) {
+            for (var i = 0; i < routeNeighborPairs.length; i++) {
+                var route = routeNeighborPairs[i];
+                // Skip routes with invalid coordinates (0, 0)
+                if (route.fromLat === 0 && route.fromLon === 0) {
+                    continue;
                 }
+                if (route.toLat === 0 && route.toLon === 0) {
+                    continue;
+                }
+                
+                var latLngs = [
+                    [route.fromLat, route.fromLon],
+                    [route.toLat, route.toLon]
+                ];
+                
+                var polyline = window.L.polyline(latLngs, {
+                    color: '#FF9800',
+                    weight: 2,
+                    opacity: 0.6,
+                    dashArray: '5, 5'
+                });
+                
+                // Add popup to polyline
+                polyline.bindPopup(route.fromName + ' → ' + route.toName);
+                
+                networkGroup.addLayer(polyline);
+                routeCount++;
             }
         }
         
+        console.log('Rendered ' + routeCount + ' route polylines');
+        
         // Add the network group to the map
         networkGroup.addTo(window.map_obj);
-        console.log('Rendered ' + nodeCount + ' nodes and ' + linkCount + ' links');
+        console.log('Network visualization complete!');
     }
     
     // Start rendering when data is loaded
