@@ -1309,14 +1309,23 @@
                 window.networkDataLoaded = true;
                 console.log('Data initialized: ' + linkMetadata.length + ' links, ' + Object.keys(nodeData).length + ' nodes, ' + routeNeighborPairsList.length + ' route neighbor pairs');
                 
-                // Update statistics display
-                if (typeof calculateStatistics === 'function') {
-                    console.log('Calling calculateStatistics...');
-                    calculateStatistics();
-                    console.log('Statistics updated from network data');
-                } else {
-                    console.error('calculateStatistics function not found!');
+                // Update statistics display (wait for DOM if needed)
+                function updateStats() {
+                    if (typeof calculateStatistics === 'function') {
+                        // Check if DOM elements exist
+                        if (document.getElementById('user-count')) {
+                            console.log('Calling calculateStatistics...');
+                            calculateStatistics();
+                            console.log('Statistics updated from network data');
+                        } else {
+                            console.log('DOM not ready yet, retrying statistics in 100ms...');
+                            setTimeout(updateStats, 100);
+                        }
+                    } else {
+                        console.error('calculateStatistics function not found!');
+                    }
                 }
+                updateStats();
                 
                 // Render the network visualization
                 renderNetworkVisualization();
@@ -1406,8 +1415,11 @@
         
         // Render nodes as markers with proper styling matching generate_visual_map.py
         var nodeCount = 0;
-        for (var nodeName in nodeData) {
-            var node = nodeData[nodeName];
+        for (var nodePubkey in nodeData) {
+            var node = nodeData[nodePubkey];
+            // Use node.name for display, not the pubkey
+            var nodeName = node.name || nodePubkey;
+            
             if (node.lat !== undefined && node.lon !== undefined && node.lat !== 0 && node.lon !== 0) {
                 // Determine color and initial based on node type
                 var fillColor, nodeGroup;
@@ -1429,8 +1441,8 @@
                 var iconText = nodeName.substring(0, 1);
                 var nodePrefix = nodeName.substring(0, 2);
                 
-                // Create marker HTML matching generate_visual_map.py
-                var markerHtml = '<div style="display: flex; align-items: center; white-space: nowrap; cursor: pointer;" onclick="filterNodeLinks(\'' + nodeName.replace(/'/g, "\\'") + '\', ' + node.lat + ', ' + node.lon + ')">' +
+                // Create marker HTML matching generate_visual_map.py (NO onclick - handle via Leaflet event)
+                var markerHtml = '<div style="display: flex; align-items: center; white-space: nowrap; cursor: pointer;">' +
                     '<div style="' +
                     'width: 32px;' +
                     'height: 32px;' +
@@ -1466,17 +1478,37 @@
                     '</div>' +
                     '</div>';
                 
-                // Create popup content
-                var popupContent = '<div style="width: 250px; color: #e0e0e0;"><b>' + nodeName + '</b><br/>' +
-                    'Type: ' + (node.type === 1 ? 'User' : node.type === 2 ? 'Repeater' : node.type === 3 ? 'Room Server' : 'Unknown') + '<br/>' +
-                    'Lat: ' + node.lat.toFixed(6) + '<br/>' +
-                    'Lon: ' + node.lon.toFixed(6) + '<br/>';
+                // Create popup content with more node information
+                var popupContent = '<div style="min-width: 250px; color: #e0e0e0;">' +
+                    '<h3 style="margin: 0 0 10px 0; color: #fff; border-bottom: 1px solid #666; padding-bottom: 5px;">' + nodeName + '</h3>' +
+                    '<table style="width: 100%; font-size: 12px;">' +
+                    '<tr><td style="padding: 2px 10px 2px 0;"><b>Type:</b></td><td>' + 
+                    (node.type === 1 ? 'User' : node.type === 2 ? 'Repeater' : node.type === 3 ? 'Room Server' : 'Unknown') + '</td></tr>' +
+                    '<tr><td style="padding: 2px 10px 2px 0;"><b>Lat:</b></td><td>' + node.lat.toFixed(6) + '</td></tr>' +
+                    '<tr><td style="padding: 2px 10px 2px 0;"><b>Lon:</b></td><td>' + node.lon.toFixed(6) + '</td></tr>';
                 
-                if (node.status) {
-                    popupContent += 'SNR: ' + (node.status.snr || 'N/A') + ' dB<br/>';
+                if (node.elevation) {
+                    popupContent += '<tr><td style="padding: 2px 10px 2px 0;"><b>Elevation:</b></td><td>' + node.elevation.toFixed(0) + ' m</td></tr>';
                 }
                 
-                popupContent += '</div>';
+                if (node.antenna_height_agl) {
+                    popupContent += '<tr><td style="padding: 2px 10px 2px 0;"><b>Antenna:</b></td><td>' + node.antenna_height_agl.toFixed(0) + ' m AGL</td></tr>';
+                }
+                
+                if (node.status) {
+                    if (node.status.snr !== undefined) {
+                        popupContent += '<tr><td style="padding: 2px 10px 2px 0;"><b>SNR:</b></td><td>' + node.status.snr + ' dB</td></tr>';
+                    }
+                    if (node.status.rssi !== undefined) {
+                        popupContent += '<tr><td style="padding: 2px 10px 2px 0;"><b>RSSI:</b></td><td>' + node.status.rssi + ' dBm</td></tr>';
+                    }
+                }
+                
+                popupContent += '</table>' +
+                    '<button onclick="filterNodeLinks(\'' + nodeName.replace(/'/g, "\\'") + '\', ' + node.lat + ', ' + node.lon + ')" ' +
+                    'style="margin-top: 10px; width: 100%; padding: 8px; background: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">' +
+                    'Filter Node Links</button>' +
+                    '</div>';
                 
                 // Create DivIcon marker
                 var marker = window.L.marker([node.lat, node.lon], {
@@ -1488,7 +1520,10 @@
                     })
                 });
                 
+                // Bind popup to marker - clicking marker shows popup
                 marker.bindPopup(popupContent);
+                
+                // Add marker to appropriate layer group
                 nodeGroup.addLayer(marker);
                 nodeCount++;
             }
@@ -1498,14 +1533,20 @@
         
         // Render routes as polylines using route_neighbor_pairs
         var routeCount = 0;
+        var skippedRoutes = 0;
         if (routeNeighborPairs && routeNeighborPairs.length > 0) {
+            console.log('Processing ' + routeNeighborPairs.length + ' route neighbor pairs...');
             for (var i = 0; i < routeNeighborPairs.length; i++) {
                 var route = routeNeighborPairs[i];
                 // Skip routes with invalid coordinates (0, 0)
                 if (route.fromLat === 0 && route.fromLon === 0) {
+                    console.log('Skipping route with 0,0 from coords: ' + route.fromName);
+                    skippedRoutes++;
                     continue;
                 }
                 if (route.toLat === 0 && route.toLon === 0) {
+                    console.log('Skipping route with 0,0 to coords: ' + route.toName);
+                    skippedRoutes++;
                     continue;
                 }
                 
@@ -1527,9 +1568,11 @@
                 routeGroup.addLayer(polyline);
                 routeCount++;
             }
+        } else {
+            console.log('No route neighbor pairs to render');
         }
         
-        console.log('Rendered ' + routeCount + ' route polylines');
+        console.log('Rendered ' + routeCount + ' route polylines (skipped ' + skippedRoutes + ' with invalid coords)');
         
         // Add groups to map in correct layer order
         routeGroup.addTo(window.map_obj);  // Routes first (bottom)
