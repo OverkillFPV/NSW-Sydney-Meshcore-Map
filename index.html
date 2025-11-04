@@ -1773,8 +1773,38 @@
                 var nodeLinks = [];
                 for (var i = 0; i < linkMetadata.length; i++) {
                     var link = linkMetadata[i];
-                    if (link.fromName === nodeName || link.toName === nodeName) {
-                        nodeLinks.push(link);
+                    // Look up nodes by pubkey to get names
+                    var fromNode = nodeData[link.from_pubkey];
+                    var toNode = nodeData[link.to_pubkey];
+                    
+                    if (!fromNode || !toNode) continue;
+                    
+                    // Check if this node is involved in the link
+                    if (link.from_pubkey === nodePubkey || link.to_pubkey === nodePubkey) {
+                        // Calculate distance using Haversine formula
+                        var dist = null;
+                        if (fromNode.lat && fromNode.lon && toNode.lat && toNode.lon) {
+                            var R = 6371; // Earth radius in km
+                            var dLat = (toNode.lat - fromNode.lat) * Math.PI / 180;
+                            var dLon = (toNode.lon - fromNode.lon) * Math.PI / 180;
+                            var a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                                    Math.cos(fromNode.lat * Math.PI / 180) * Math.cos(toNode.lat * Math.PI / 180) *
+                                    Math.sin(dLon/2) * Math.sin(dLon/2);
+                            var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+                            dist = R * c;
+                        }
+                        
+                        nodeLinks.push({
+                            fromName: fromNode.name,
+                            toName: toNode.name,
+                            fromPubkey: link.from_pubkey,
+                            toPubkey: link.to_pubkey,
+                            snr: link.snr,
+                            rssi: link.rssi,
+                            distance: dist,
+                            timestamp: link.timestamp,
+                            heard_seconds_ago: link.heard_seconds_ago
+                        });
                     }
                 }
                 
@@ -1789,15 +1819,15 @@
                     for (var i = 0; i < nodeLinks.length; i++) {
                         var link = nodeLinks[i];
                         var bg = i % 2 === 0 ? '#2a2a2a' : '#1e1e1e';
-                        var peerName = link.fromName === nodeName ? link.toName : link.fromName;
+                        var peerName = link.fromPubkey === nodePubkey ? link.toName : link.fromName;
                         var snr = link.snr !== undefined ? link.snr.toFixed(1) + ' dB' : '-';
                         var rssi = link.rssi !== undefined ? link.rssi.toFixed(1) + ' dBm' : '-';
                         var dist = link.distance ? link.distance.toFixed(2) + 'km' : '-';
-                        var heard = link.heard_seconds_ago ? formatTimeAgo(Math.floor(Date.now() / 1000) - link.heard_seconds_ago) : '-';
+                        var heard = link.timestamp ? formatTimeAgo(link.timestamp) : '-';
                         
-                        // Determine if TX or RX
-                        var txSnr = link.fromName === nodeName ? snr : '-';
-                        var rxSnr = link.fromName === nodeName ? '-' : snr;
+                        // Determine if TX or RX (from = receiver who heard it, to = transmitter who sent it)
+                        var txSnr = link.toPubkey === nodePubkey ? snr : '-';
+                        var rxSnr = link.fromPubkey === nodePubkey ? snr : '-';
                         
                         popupContent += '<tr style="background: ' + bg + ';"><td style="padding: 4px 6px; font-size: 10px;">' + peerName + 
                             '</td><td style="padding: 4px 6px; text-align: center; font-size: 10px;">' + txSnr +
@@ -2066,32 +2096,64 @@
             console.log('Processing ' + routeNeighborPairs.length + ' route neighbor pairs...');
             for (var i = 0; i < routeNeighborPairs.length; i++) {
                 var route = routeNeighborPairs[i];
-                // Skip routes with invalid coordinates (0, 0)
-                if (route.fromLat === 0 && route.fromLon === 0) {
-                    console.log('Skipping route with 0,0 from coords: ' + route.fromName);
+                
+                var fromLat = route.fromLat;
+                var fromLon = route.fromLon;
+                var toLat = route.toLat;
+                var toLon = route.toLon;
+                var fromName = route.fromName;
+                var toName = route.toName;
+                
+                // If coordinates are missing or invalid, try to look up by name
+                if ((!fromLat || !fromLon || fromLat === 0 || fromLon === 0) && fromName) {
+                    // Search nodeData for matching name
+                    for (var pubkey in nodeData) {
+                        if (nodeData[pubkey].name === fromName) {
+                            fromLat = nodeData[pubkey].lat;
+                            fromLon = nodeData[pubkey].lon;
+                            break;
+                        }
+                    }
+                }
+                
+                if ((!toLat || !toLon || toLat === 0 || toLon === 0) && toName) {
+                    // Search nodeData for matching name
+                    for (var pubkey in nodeData) {
+                        if (nodeData[pubkey].name === toName) {
+                            toLat = nodeData[pubkey].lat;
+                            toLon = nodeData[pubkey].lon;
+                            break;
+                        }
+                    }
+                }
+                
+                // Skip routes with invalid coordinates after lookup
+                if (!fromLat || !fromLon || fromLat === 0 || fromLon === 0) {
+                    console.log('Skipping route with 0,0 from coords: ' + fromName);
                     skippedRoutes++;
                     continue;
                 }
-                if (route.toLat === 0 && route.toLon === 0) {
-                    console.log('Skipping route with 0,0 to coords: ' + route.toName);
+                if (!toLat || !toLon || toLat === 0 || toLon === 0) {
+                    console.log('Skipping route with 0,0 to coords: ' + toName);
                     skippedRoutes++;
                     continue;
                 }
                 
                 var latLngs = [
-                    [route.fromLat, route.fromLon],
-                    [route.toLat, route.toLon]
+                    [fromLat, fromLon],
+                    [toLat, toLon]
                 ];
                 
                 var polyline = window.L.polyline(latLngs, {
                     color: '#B0B0B0',
                     weight: 2,
                     opacity: 0.6,
-                    dashArray: '5, 10'
+                    dashArray: '5, 10',
+                    className: 'route-neighbor-link'
                 });
                 
                 // Add popup to polyline
-                polyline.bindPopup('<b>Route Neighbour</b><br/>' + route.fromName + ' → ' + route.toName);
+                polyline.bindPopup('<b>Route Neighbour</b><br/>' + fromName + ' → ' + toName);
                 
                 routeGroup.addLayer(polyline);
                 routeCount++;
@@ -2111,9 +2173,25 @@
         for (var i = 0; i < linkMetadata.length; i++) {
             var link = linkMetadata[i];
             
+            // Look up coordinates from nodeData using pubkeys
+            var fromNode = nodeData[link.from_pubkey];
+            var toNode = nodeData[link.to_pubkey];
+            
+            if (!fromNode || !toNode) {
+                console.log('  Skipping RF link: node not found (from=' + (fromNode ? 'OK' : 'MISSING') + ', to=' + (toNode ? 'OK' : 'MISSING') + ')');
+                skippedLinks++;
+                continue;
+            }
+            
+            var fromLat = fromNode.lat;
+            var fromLon = fromNode.lon;
+            var toLat = toNode.lat;
+            var toLon = toNode.lon;
+            
             // Skip links with invalid coordinates
-            if (!link.fromLat || !link.fromLon || !link.toLat || !link.toLon ||
-                link.fromLat === 0 || link.fromLon === 0 || link.toLat === 0 || link.toLon === 0) {
+            if (!fromLat || !fromLon || !toLat || !toLon ||
+                fromLat === 0 || fromLon === 0 || toLat === 0 || toLon === 0) {
+                console.log('  Skipping RF link with 0,0 coords: ' + fromNode.name + ' → ' + toNode.name);
                 skippedLinks++;
                 continue;
             }
@@ -2132,19 +2210,20 @@
             }
             
             var latLngs = [
-                [link.fromLat, link.fromLon],
-                [link.toLat, link.toLon]
+                [fromLat, fromLon],
+                [toLat, toLon]
             ];
             
             var polyline = window.L.polyline(latLngs, {
                 color: color,
                 weight: 2,
-                opacity: 0.5
+                opacity: 0.6,
+                className: 'rf-link'
             });
             
             // Add popup with link details
             var popupContent = '<b>RF Link</b><br/>' +
-                link.fromName + ' → ' + link.toName + '<br/>' +
+                fromNode.name + ' → ' + toNode.name + '<br/>' +
                 'SNR: ' + snr.toFixed(1) + ' dB';
             if (link.rssi) {
                 popupContent += '<br/>RSSI: ' + link.rssi.toFixed(1) + ' dBm';
