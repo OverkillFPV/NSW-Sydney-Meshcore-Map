@@ -1,285 +1,1350 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Sydney Meshcore Network Map</title>
-    
-    <!-- Leaflet CSS -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-          integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
-          crossorigin=""/>
-    
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        html, body {
-            width: 100%;
-            height: 100%;
-            overflow: hidden;
-            position: fixed;
-        }
-        #map {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            width: 100%;
-            height: 100%;
-        }
-        #loading {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: rgba(0, 0, 0, 0.85);
-            color: white;
-            padding: 30px 50px;
-            border-radius: 10px;
-            font-family: Arial, sans-serif;
-            font-size: 18px;
-            z-index: 10000;
-            text-align: center;
-        }
-        .spinner {
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid #667eea;
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            animation: spin 1s linear infinite;
-            margin: 20px auto 0;
-        }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        #error {
-            display: none;
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: rgba(255, 0, 0, 0.9);
-            color: white;
-            padding: 30px 50px;
-            border-radius: 10px;
-            font-family: Arial, sans-serif;
-            z-index: 10001;
-            text-align: center;
-            max-width: 80%;
-        }
-    </style>
-</head>
-<body>
-    <div id="loading">
-        <div>Loading Network Map Data...</div>
-        <div class="spinner"></div>
-    </div>
-    <div id="error"></div>
-    <div id="map"></div>
+<!DOCTYPE html><!DOCTYPE html>
 
-    <!-- Leaflet JavaScript -->
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-            integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
-            crossorigin=""></script>
-    
-    <script>
-        // Global variables
-        window.map_obj = null;
-        window.networkData = null;
-        window.coverageDataCache = {};
-        window.coverageCircles = {};
-        window.coverageCirclesVisible = false;
-        window.currentFilter = null;
+<html><html>
+
+<head><head>
+
+    <meta charset="UTF-8">    <meta charset="UTF-8">
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+    <title>Sydney Meshcore Network Map</title>    <title>Sydney Meshcore Network Map</title>
+
         
-        // Load the network data JSON
-        function loadNetworkData() {
-            fetch('network_map_data.json')
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error('Failed to load network data: ' + response.statusText);
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    console.log('Network data loaded successfully');
-                    window.networkData = data;
-                    document.getElementById('loading').style.display = 'none';
-                    initializeMap();
-                })
-                .catch(error => {
-                    console.error('Error loading network data:', error);
-                    document.getElementById('loading').style.display = 'none';
-                    document.getElementById('error').style.display = 'block';
-                    document.getElementById('error').innerHTML = 
-                        '<h2>⚠️ Error Loading Map Data</h2>' +
-                        '<p style="margin-top: 10px;">' + error.message + '</p>' +
-                        '<p style="margin-top: 10px; font-size: 14px;">Please ensure network_map_data.json is available.</p>';
-                });
-        }
-        
-        // Initialize the map once data is loaded
-        function initializeMap() {
-            const data = window.networkData;
-            
-            // Calculate center from nodes
-            let center_lat, center_lon;
-            if (data.nodes && Object.keys(data.nodes).length > 0) {
-                const lats = [];
-                const lons = [];
-                for (const node of Object.values(data.nodes)) {
-                    if (node.lat && node.lon) {
-                        lats.push(node.lat);
-                        lons.push(node.lon);
-                    }
+
+    <!-- Leaflet CSS -->    <!-- Leaflet CSS -->
+
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.3/dist/leaflet.css"/>    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/css/bootstrap.min.css"/>          integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+
+    <link rel="stylesheet" href="https://netdna.bootstrapcdn.com/bootstrap/3.0.0/css/bootstrap-glyphicons.css"/>          crossorigin=""/>
+
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.2.0/css/all.min.css"/>    
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/Leaflet.awesome-markers/2.0.2/leaflet.awesome-markers.css"/>    <style>
+
+            * {
+
+    <style>            margin: 0;
+
+        * {            padding: 0;
+
+            margin: 0;            box-sizing: border-box;
+
+            padding: 0;        }
+
+            box-sizing: border-box;        html, body {
+
+        }            width: 100%;
+
+        html {            height: 100%;
+
+            margin: 0 !important;            overflow: hidden;
+
+            padding: 0 !important;            position: fixed;
+
+            width: 100% !important;        }
+
+            height: 100% !important;        #map {
+
+            overflow: hidden !important;            position: fixed;
+
+            position: fixed !important;            top: 0;
+
+        }            left: 0;
+
+        body {            right: 0;
+
+            margin: 0 !important;            bottom: 0;
+
+            padding: 0 !important;            width: 100%;
+
+            width: 100% !important;            height: 100%;
+
+            height: 100% !important;        }
+
+            overflow: hidden !important;        #loading {
+
+            position: fixed !important;            position: fixed;
+
+        }            top: 50%;
+
+        #map {            left: 50%;
+
+            position: fixed !important;            transform: translate(-50%, -50%);
+
+            top: 0 !important;            background: rgba(0, 0, 0, 0.85);
+
+            left: 0 !important;            color: white;
+
+            right: 0 !important;            padding: 30px 50px;
+
+            bottom: 0 !important;            border-radius: 10px;
+
+            width: 100% !important;            font-family: Arial, sans-serif;
+
+            height: 100% !important;            font-size: 18px;
+
+            overflow: hidden !important;            z-index: 10000;
+
+        }            text-align: center;
+
                 }
-                if (lats.length > 0) {
-                    center_lat = lats.reduce((a, b) => a + b, 0) / lats.length;
-                    center_lon = lons.reduce((a, b) => a + b, 0) / lons.length;
-                } else {
-                    center_lat = -33.8688;
-                    center_lon = 151.2093;
-                }
-            } else {
-                center_lat = -33.8688;
-                center_lon = 151.2093;
-            }
-            
-            // Create the map
-            window.map_obj = L.map('map', {
-                center: [center_lat, center_lon],
-                zoom: 11,
-                zoomControl: true,
-                maxZoom: 18
-            });
-            
-            // Add tile layer
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-                maxZoom: 18
-            }).addTo(window.map_obj);
-            
-            console.log('Map initialized at:', center_lat, center_lon);
-            
-            // Now render all map elements
+
+        /* Hide scrollbars */        .spinner {
+
+        ::-webkit-scrollbar {            border: 4px solid #f3f3f3;
+
+            width: 0px !important;            border-top: 4px solid #667eea;
+
+            height: 0px !important;            border-radius: 50%;
+
+            display: none !important;            width: 40px;
+
+        }            height: 40px;
+
+        * {            animation: spin 1s linear infinite;
+
+            scrollbar-width: none !important;            margin: 20px auto 0;
+
+            -ms-overflow-style: none !important;        }
+
+        }        @keyframes spin {
+
+                    0% { transform: rotate(0deg); }
+
+        /* Ensure popups appear above all other elements */            100% { transform: rotate(360deg); }
+
+        .leaflet-popup {        }
+
+            z-index: 10000 !important;        #error {
+
+        }            display: none;
+
+                    position: fixed;
+
+        .leaflet-popup-pane {            top: 50%;
+
+            z-index: 10000 !important;            left: 50%;
+
+        }            transform: translate(-50%, -50%);
+
+                    background: rgba(255, 0, 0, 0.9);
+
+        /* Path visibility control */            color: white;
+
+        .leaflet-interactive.path-hidden {            padding: 30px 50px;
+
+            display: none !important;            border-radius: 10px;
+
+            visibility: hidden !important;            font-family: Arial, sans-serif;
+
+            opacity: 0 !important;            z-index: 10001;
+
+        }            text-align: center;
+
+                    max-width: 80%;
+
+        .leaflet-interactive.path-visible {        }
+
+            display: block !important;    </style>
+
+            visibility: visible !important;</head>
+
+            opacity: 1 !important;<body>
+
+        }    <div id="loading">
+
+                <div>Loading Network Map Data...</div>
+
+        /* Info panel */        <div class="spinner"></div>
+
+        #info-panel {    </div>
+
+            position: fixed;    <div id="error"></div>
+
+            top: 10px;    <div id="map"></div>
+
+            left: 50px;
+
+            width: 320px;    <!-- Leaflet JavaScript -->
+
+            max-height: 90vh;    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+
+            overflow-y: auto;            integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+
+            background-color: white;            crossorigin=""></script>
+
+            border: 2px solid grey;    
+
+            z-index: 9999;    <script>
+
+            font-size: 14px;        // Global variables
+
+            padding: 10px;        window.map_obj = null;
+
+            border-radius: 5px;        window.networkData = null;
+
+            box-shadow: 2px 2px 6px rgba(0,0,0,0.3);        window.coverageDataCache = {};
+
+        }        window.coverageCircles = {};
+
+                window.coverageCirclesVisible = false;
+
+        /* Hide map controls */        window.currentFilter = null;
+
+        .leaflet-control-zoom,        
+
+        .leaflet-control-fullscreen,        // Load the network data JSON
+
+        .leaflet-control-layers {        function loadNetworkData() {
+
+            display: none !important;            fetch('network_map_data.json')
+
+        }                .then(response => {
+
+                            if (!response.ok) {
+
+        /* Mobile responsive design */                        throw new Error('Failed to load network data: ' + response.statusText);
+
+        @media (max-width: 768px) {                    }
+
+            #info-panel {                    return response.json();
+
+                top: 60px;                })
+
+                left: 10px;                .then(data => {
+
+                right: 10px;                    console.log('Network data loaded successfully');
+
+                width: auto;                    window.networkData = data;
+
+                max-width: calc(100vw - 20px);                    document.getElementById('loading').style.display = 'none';
+
+                max-height: 60vh;                    initializeMap();
+
+                font-size: 14px;                })
+
+                padding: 12px;                .catch(error => {
+
+                display: none;                    console.error('Error loading network data:', error);
+
+            }                    document.getElementById('loading').style.display = 'none';
+
+                                document.getElementById('error').style.display = 'block';
+
+            #info-panel h4 {                    document.getElementById('error').innerHTML = 
+
+                font-size: 18px !important;                        '<h2>⚠️ Error Loading Map Data</h2>' +
+
+                margin: 8px 0 !important;                        '<p style="margin-top: 10px;">' + error.message + '</p>' +
+
+            }                        '<p style="margin-top: 10px; font-size: 14px;">Please ensure network_map_data.json is available.</p>';
+
+                            });
+
+            #info-panel p {        }
+
+                font-size: 13px !important;        
+
+                margin: 4px 0 !important;        // Initialize the map once data is loaded
+
+            }        function initializeMap() {
+
+                        const data = window.networkData;
+
+            #mobile-toggle {            
+
+                display: block !important;            // Calculate center from nodes
+
+            }            let center_lat, center_lon;
+
+        }            if (data.nodes && Object.keys(data.nodes).length > 0) {
+
+                        const lats = [];
+
+        /* Loading screen */                const lons = [];
+
+        #loading {                for (const node of Object.values(data.nodes)) {
+
+            position: fixed;                    if (node.lat && node.lon) {
+
+            top: 50%;                        lats.push(node.lat);
+
+            left: 50%;                        lons.push(node.lon);
+
+            transform: translate(-50%, -50%);                    }
+
+            background: rgba(0, 0, 0, 0.85);                }
+
+            color: white;                if (lats.length > 0) {
+
+            padding: 30px 50px;                    center_lat = lats.reduce((a, b) => a + b, 0) / lats.length;
+
+            border-radius: 10px;                    center_lon = lons.reduce((a, b) => a + b, 0) / lons.length;
+
+            font-family: Arial, sans-serif;                } else {
+
+            font-size: 18px;                    center_lat = -33.8688;
+
+            z-index: 10000;                    center_lon = 151.2093;
+
+            text-align: center;                }
+
+        }            } else {
+
+        .spinner {                center_lat = -33.8688;
+
+            border: 4px solid #f3f3f3;                center_lon = 151.2093;
+
+            border-top: 4px solid #667eea;            }
+
+            border-radius: 50%;            
+
+            width: 40px;            // Create the map
+
+            height: 40px;            window.map_obj = L.map('map', {
+
+            animation: spin 1s linear infinite;                center: [center_lat, center_lon],
+
+            margin: 20px auto 0;                zoom: 11,
+
+        }                zoomControl: true,
+
+        @keyframes spin {                maxZoom: 18
+
+            0% { transform: rotate(0deg); }            });
+
+            100% { transform: rotate(360deg); }            
+
+        }            // Add tile layer
+
+    </style>            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+
+</head>                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+
+<body>                maxZoom: 18
+
+                }).addTo(window.map_obj);
+
+<div id="loading">            
+
+    <div>Loading Network Map Data...</div>            console.log('Map initialized at:', center_lat, center_lon);
+
+    <div class="spinner"></div>            
+
+</div>            // Now render all map elements
+
             renderMapElements();
-        }
-        
-        // Render all map elements (nodes, links, etc.)
-        function renderMapElements() {
-            console.log('Rendering map elements...');
-            
-            // This is where we'll add nodes, links, coverage, etc.
-            // For now, just show a simple message
-            const data = window.networkData;
-            console.log('Loaded data contains:');
-            console.log('  - Nodes:', Object.keys(data.nodes || {}).length);
-            console.log('  - Links:', (data.links || []).length);
-            console.log('  - Coverage data:', Object.keys(data.coverage || {}).length);
-            
-            // Add markers for nodes
-            if (data.nodes) {
-                for (const [pubkey, node] of Object.entries(data.nodes)) {
-                    if (node.lat && node.lon) {
-                        const marker = L.circleMarker([node.lat, node.lon], {
-                            radius: 8,
-                            fillColor: getNodeColor(node.type),
-                            color: '#fff',
-                            weight: 2,
-                            opacity: 1,
-                            fillOpacity: 0.8
-                        }).addTo(window.map_obj);
-                        
-                        marker.bindPopup('<b>' + (node.name || 'Unknown') + '</b><br>Type: ' + getNodeTypeName(node.type));
+
+<div id="info-panel">        }
+
+    <div id="stats-view">        
+
+        <h4 style="margin: 0 0 5px 0;">Sydney Meshcore Mesh Map</h4>        // Render all map elements (nodes, links, etc.)
+
+        <p style="margin: 0; font-size: 12px;">        function renderMapElements() {
+
+            <b>Generated:</b> <span id="generated-time">Loading...</span><br>            console.log('Rendering map elements...');
+
+            <b>Nodes:</b> <span id="total-nodes">0</span>             
+
+            (<span id="nodes-with-gps">0</span> with GPS)<br>            // This is where we'll add nodes, links, coverage, etc.
+
+            <b>Links:</b> <span id="total-links">0</span><br>            // For now, just show a simple message
+
+            <b>RF Packets:</b> <span id="rf-packets">0</span>            const data = window.networkData;
+
+        </p>            console.log('Loaded data contains:');
+
+                    console.log('  - Nodes:', Object.keys(data.nodes || {}).length);
+
+        <hr style="margin: 10px 0;">            console.log('  - Links:', (data.links || []).length);
+
+                    console.log('  - Coverage data:', Object.keys(data.coverage || {}).length);
+
+        <h4 style="margin: 5px 0;">Node Types</h4>            
+
+        <div id="node-types" style="font-size: 11px; margin: 5px 0;">            // Add markers for nodes
+
+            <label style="display: block; margin: 5px 0; cursor: pointer;">            if (data.nodes) {
+
+                <input type="checkbox" id="show-users" checked onchange="toggleNodeType('users', this.checked)" style="transform: scale(0.9);">                for (const [pubkey, node] of Object.entries(data.nodes)) {
+
+                <span style="color: #3388ff;">● Users: <span id="user-count">0</span></span>                    if (node.lat && node.lon) {
+
+            </label>                        const marker = L.circleMarker([node.lat, node.lon], {
+
+            <label style="display: block; margin: 5px 0; cursor: pointer;">                            radius: 8,
+
+                <input type="checkbox" id="show-repeaters" checked onchange="toggleNodeType('repeaters', this.checked)" style="transform: scale(0.9);">                            fillColor: getNodeColor(node.type),
+
+                <span style="color: #ff3333;">● Repeaters: <span id="repeater-count">0</span></span>                            color: '#fff',
+
+            </label>                            weight: 2,
+
+            <label style="display: block; margin: 10px 0 5px 20px; cursor: pointer;">                            opacity: 1,
+
+                <input type="checkbox" id="filter-inactive-repeaters" onchange="toggleInactiveRepeaters(this.checked)" style="transform: scale(0.9);">                            fillOpacity: 0.8
+
+                <span style="color: #808080;">Only show inactive (48+ hrs): <span id="inactive-repeater-count">0</span></span>                        }).addTo(window.map_obj);
+
+            </label>                        
+
+            <label style="display: block; margin: 5px 0; cursor: pointer;">                        marker.bindPopup('<b>' + (node.name || 'Unknown') + '</b><br>Type: ' + getNodeTypeName(node.type));
+
+                <input type="checkbox" id="show-room-servers" checked onchange="toggleNodeType('roomservers', this.checked)" style="transform: scale(0.9);">                    }
+
+                <span style="color: #33cc33;">● Room Servers: <span id="room-server-count">0</span></span>                }
+
+            </label>            }
+
+            <label style="display: block; margin: 5px 0; cursor: pointer;">            
+
+                <input type="checkbox" id="show-unknown" checked onchange="toggleNodeType('unknown', this.checked)" style="transform: scale(0.9);">            // Add links
+
+                <span style="color: #808080;">● Unknown: <span id="unknown-count">0</span></span>            if (data.links) {
+
+            </label>                for (const link of data.links) {
+
+            <label style="display: block; margin: 10px 0 5px 20px; cursor: pointer;">                    // Find nodes by pubkey prefix
+
+                <input type="checkbox" id="filter-estimated-nodes" onchange="toggleEstimatedNodes(this.checked)" style="transform: scale(0.9);">                    const fromNode = findNodeByPrefix(link.from_prefix);
+
+                <span style="color: #888;">Only show estimated nodes: <span id="estimated-count">0</span></span>                    const toNode = data.nodes[link.to_pubkey];
+
+            </label>                    
+
+        </div>                    if (fromNode && toNode && fromNode.lat && fromNode.lon && toNode.lat && toNode.lon) {
+
+                                const snr = link.snr || 0;
+
+        <hr style="margin: 10px 0;">                        const color = snrToColor(snr);
+
+                                
+
+        <h4 style="margin: 5px 0;">Link Types</h4>                        L.polyline([
+
+        <div style="font-size: 11px; margin: 5px 0;">                            [fromNode.lat, fromNode.lon],
+
+            <label style="display: block; margin: 5px 0; cursor: pointer;">                            [toNode.lat, toNode.lon]
+
+                <input type="checkbox" id="show-rf-links" checked onchange="toggleLinks('rf', this.checked)" style="transform: scale(0.9);">                        ], {
+
+                <span>RF Links</span>                            color: color,
+
+            </label>                            weight: 3,
+
+            <label style="display: block; margin: 5px 0; cursor: pointer;">                            opacity: 0.6
+
+                <input type="checkbox" id="show-route-neighbours" checked onchange="toggleLinks('route', this.checked)" style="transform: scale(0.9);">                        }).addTo(window.map_obj).bindPopup(
+
+                <span>Route Neighbours</span>                            '<b>Link:</b> ' + (fromNode.name || '?') + ' → ' + (toNode.name || '?') + 
+
+            </label>                            '<br>SNR: ' + snr + ' dB'
+
+        </div>                        );
+
+                            }
+
+        <hr style="margin: 10px 0;">                }
+
                     }
-                }
+
+        <h4 style="margin: 5px 0;">Detailed Statistics</h4>            
+
+        <div id="detailed-stats" style="font-size: 11px; margin: 5px 0;">            console.log('Map elements rendered');
+
+            <br>        }
+
+            <b>Airtime Statistics:</b><br>        
+
+            Highest Airtime: <span id="highest-airtime">-</span><br>        // Helper functions
+
+            Highest RX Airtime: <span id="highest-rx-airtime">-</span><br>        function getNodeColor(type) {
+
+            Avg RX Airtime: <span id="avg-rx-airtime">0</span>%<br>            const colors = {
+
+            Avg TX Airtime: <span id="avg-tx-airtime">0</span>%<br>                0: '#808080', // Unknown - gray
+
+            <br>                1: '#3388ff', // User - blue
+
+            <b>Network Statistics:</b><br>                2: '#ff3333', // Repeater - red
+
+            Longest Link: <span id="longest-link">-</span><br>                3: '#33cc33'  // Room Server - green
+
+            Longest Uptime: <span id="longest-uptime">-</span><br>            };
+
+            Avg Noise Floor: <span id="avg-noise-floor">-</span><br>            return colors[type] || '#808080';
+
+            Highest Noise Floor: <span id="highest-noise-floor">-</span><br>        }
+
+            Lowest Noise Floor: <span id="lowest-noise-floor">-</span><br>        
+
+            Total Packets: <span id="total-packets">0</span><br>        function getNodeTypeName(type) {
+
+            <br>            const names = {
+
+            <b>Clock Synchronization:</b><br>                0: 'Unknown',
+
+            Avg Clock Error: <span id="avg-clock-error">-</span><br>                1: 'User',
+
+            Max Clock Error: <span id="max-clock-error">-</span><br>                2: 'Repeater',
+
+            <br>                3: 'Room Server'
+
+            <b>Top Node Owners:</b><br>            };
+
+            <div id="top-owners" style="font-size: 11px; margin-left: 10px;"></div>            return names[type] || 'Unknown';
+
+        </div>        }
+
+                
+
+        <hr style="margin: 10px 0;">        function snrToColor(snr) {
+
+                    const clamped = Math.max(-20, Math.min(5, snr));
+
+        <h4 style="margin: 5px 0;">Map Tiles</h4>            const normalized = (clamped + 20) / 25.0;
+
+        <div style="font-size: 11px; margin: 5px 0;">            
+
+            <label style="display: block; margin: 5px 0; cursor: pointer;">            let r, g;
+
+                <input type="radio" name="map-tile" value="OpenStreetMap" checked onchange="changeMapTile(this.value)" style="transform: scale(0.9);">             if (normalized < 0.5) {
+
+                OpenStreetMap                const t = normalized * 2;
+
+            </label>                r = 255;
+
+            <label style="display: block; margin: 5px 0; cursor: pointer;">                g = Math.floor(255 * t);
+
+                <input type="radio" name="map-tile" value="Satellite" onchange="changeMapTile(this.value)" style="transform: scale(0.9);">             } else {
+
+                Satellite View                const t = (normalized - 0.5) * 2;
+
+            </label>                r = Math.floor(255 * (1 - t));
+
+            <label style="display: block; margin: 5px 0; cursor: pointer;">                g = 255;
+
+                <input type="radio" name="map-tile" value="Topographic" onchange="changeMapTile(this.value)" style="transform: scale(0.9);">             }
+
+                Topographic Map            
+
+            </label>            return '#' + r.toString(16).padStart(2, '0') + g.toString(16).padStart(2, '0') + '00';
+
+        </div>        }
+
+                
+
+        <hr style="margin: 10px 0;">        function findNodeByPrefix(prefix) {
+
+                    if (!window.networkData || !window.networkData.nodes) return null;
+
+        <h4 style="margin: 5px 0;">Search Nodes</h4>            for (const [pubkey, node] of Object.entries(window.networkData.nodes)) {
+
+        <input type="text" id="node-search" placeholder="Search by name..."                 if (pubkey.startsWith(prefix)) {
+
+            style="width: 100%; padding: 5px; font-size: 12px; border: 1px solid #ccc; border-radius: 3px; box-sizing: border-box;">                    return node;
+
+        <div id="search-results" style="max-height: 200px; overflow-y: auto; margin-top: 5px; font-size: 11px; background: white; border: 1px solid #ddd; border-radius: 3px; display: none;"></div>                }
+
+    </div>            }
+
+                return null;
+
+    <div id="filter-view" style="display: none;">        }
+
+        <h4 style="margin: 0 0 5px 0; color: #4CAF50;">Filtered View</h4>        
+
+        <p id="filter-details" style="margin: 0; font-size: 11px;"></p>        // Start loading data when page loads
+
+        <button onclick="clearFilter()" style="margin-top: 10px; width: 100%; padding: 6px; background: #f44336; color: white; border: none; border-radius: 3px; cursor: pointer;">Clear Filter</button>        window.addEventListener('load', loadNetworkData);
+
+    </div>    </script>
+
+</div></body>
+
+</html>
+
+<!-- Mobile toggle button -->
+<button id="mobile-toggle" style="
+    display: none;
+    position: fixed;
+    top: 10px;
+    left: 10px;
+    z-index: 10000;
+    background: #2196F3;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 12px 16px;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.4);
+">
+    <span id="toggle-icon">ℹ️</span> <span id="toggle-text">Info</span>
+</button>
+
+<div id="map"></div>
+
+<!-- Leaflet and dependencies -->
+<script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.3/dist/leaflet.js"></script>
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Leaflet.awesome-markers/2.0.2/leaflet.awesome-markers.js"></script>
+
+<script>
+// Global variables
+window.map_obj = null;
+window.networkData = null;
+window.allMarkers = {};
+window.allLinks = [];
+window.allRouteLinks = [];
+window.nodeData = {};
+window.linkData = {};
+window.routeNeighborData = {};
+window.coverageCircles = {};
+window.currentFilter = null;
+window.currentTileLayer = null;
+
+// Node type constants
+const NODE_TYPE_UNKNOWN = 0;
+const NODE_TYPE_USER = 1;
+const NODE_TYPE_REPEATER = 2;
+const NODE_TYPE_ROUTER = 4; // Also treated as repeater
+const NODE_TYPE_ROOM_SERVER = 3;
+
+// Load network data
+function loadNetworkData() {
+    fetch('network_map_data.json')
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Failed to load network data: ' + response.statusText);
             }
+            return response.json();
+        })
+        .then(data => {
+            console.log('Network data loaded successfully');
+            window.networkData = data;
+            document.getElementById('loading').style.display = 'none';
             
-            // Add links
-            if (data.links) {
-                for (const link of data.links) {
-                    // Find nodes by pubkey prefix
-                    const fromNode = findNodeByPrefix(link.from_prefix);
-                    const toNode = data.nodes[link.to_pubkey];
-                    
-                    if (fromNode && toNode && fromNode.lat && fromNode.lon && toNode.lat && toNode.lon) {
-                        const snr = link.snr || 0;
-                        const color = snrToColor(snr);
-                        
-                        L.polyline([
-                            [fromNode.lat, fromNode.lon],
-                            [toNode.lat, toNode.lon]
-                        ], {
-                            color: color,
-                            weight: 3,
-                            opacity: 0.6
-                        }).addTo(window.map_obj).bindPopup(
-                            '<b>Link:</b> ' + (fromNode.name || '?') + ' → ' + (toNode.name || '?') + 
-                            '<br>SNR: ' + snr + ' dB'
-                        );
-                    }
-                }
+            // Process data
+            processNetworkData();
+            
+            // Initialize map
+            initializeMap();
+            
+            // Render everything
+            renderMap();
+            
+            // Initialize features
+            initializeSearch();
+            initializeMobileToggle();
+        })
+        .catch(error => {
+            console.error('Error loading network data:', error);
+            document.getElementById('loading').innerHTML = 
+                '<h2 style="color: #ff6b6b;">⚠️ Error Loading Map Data</h2>' +
+                '<p style="margin-top: 10px;">' + error.message + '</p>' +
+                '<p style="margin-top: 10px; font-size: 14px;">Please ensure network_map_data.json is available.</p>';
+        });
+}
+
+// Process network data into usable structures
+function processNetworkData() {
+    const data = window.networkData;
+    
+    // Build nodeData lookup
+    for (const [pubkey, node] of Object.entries(data.nodes || {})) {
+        nodeData[node.name] = {
+            ...node,
+            pubkey: pubkey
+        };
+    }
+    
+    // Build linkData lookup
+    (data.links || []).forEach((link, index) => {
+        linkData[index] = link;
+    });
+    
+    // Update statistics display
+    updateStatisticsDisplay();
+}
+
+// Update statistics in info panel
+function updateStatisticsDisplay() {
+    const data = window.networkData;
+    const metadata = data.metadata || {};
+    
+    // Basic stats
+    document.getElementById('generated-time').textContent = metadata.generated || 'Unknown';
+    document.getElementById('total-nodes').textContent = Object.keys(data.nodes || {}).length;
+    document.getElementById('nodes-with-gps').textContent = Object.values(data.nodes || {}).filter(n => n.lat && n.lon && !n.estimated).length;
+    document.getElementById('total-links').textContent = (data.links || []).length;
+    
+    // Count by type
+    let userCount = 0, repeaterCount = 0, roomServerCount = 0, unknownCount = 0, estimatedCount = 0;
+    let inactiveRepeaterCount = 0;
+    
+    for (const node of Object.values(data.nodes || {})) {
+        const type = node.type || 0;
+        if (type === NODE_TYPE_USER) userCount++;
+        else if (type === NODE_TYPE_REPEATER || type === NODE_TYPE_ROUTER) repeaterCount++;
+        else if (type === NODE_TYPE_ROOM_SERVER) roomServerCount++;
+        else unknownCount++;
+        
+        if (node.estimated) estimatedCount++;
+    }
+    
+    document.getElementById('user-count').textContent = userCount;
+    document.getElementById('repeater-count').textContent = repeaterCount;
+    document.getElementById('room-server-count').textContent = roomServerCount;
+    document.getElementById('unknown-count').textContent = unknownCount;
+    document.getElementById('estimated-count').textContent = estimatedCount;
+    document.getElementById('inactive-repeater-count').textContent = inactiveRepeaterCount;
+    
+    // Network statistics
+    const nodeStats = data.node_statistics || {};
+    if (nodeStats.highest_airtime) {
+        document.getElementById('highest-airtime').textContent = 
+            `${nodeStats.highest_airtime.name} (${nodeStats.highest_airtime.airtime}%)`;
+    }
+    if (nodeStats.highest_rx_airtime) {
+        document.getElementById('highest-rx-airtime').textContent = 
+            `${nodeStats.highest_rx_airtime.name} (${nodeStats.highest_rx_airtime.rx_airtime}%)`;
+    }
+    if (nodeStats.avg_rx_airtime !== undefined) {
+        document.getElementById('avg-rx-airtime').textContent = nodeStats.avg_rx_airtime.toFixed(1);
+    }
+    if (nodeStats.avg_tx_airtime !== undefined) {
+        document.getElementById('avg-tx-airtime').textContent = nodeStats.avg_tx_airtime.toFixed(1);
+    }
+    if (nodeStats.longest_link) {
+        document.getElementById('longest-link').textContent = 
+            `${nodeStats.longest_link.from} → ${nodeStats.longest_link.to} (${(nodeStats.longest_link.distance/1000).toFixed(1)}km)`;
+    }
+    if (nodeStats.longest_uptime) {
+        document.getElementById('longest-uptime').textContent = 
+            `${nodeStats.longest_uptime.name} (${formatUptime(nodeStats.longest_uptime.uptime)})`;
+    }
+    if (nodeStats.avg_noise_floor !== undefined) {
+        document.getElementById('avg-noise-floor').textContent = nodeStats.avg_noise_floor.toFixed(1) + ' dBm';
+    }
+    if (nodeStats.highest_noise_floor) {
+        document.getElementById('highest-noise-floor').textContent = 
+            `${nodeStats.highest_noise_floor.name} (${nodeStats.highest_noise_floor.noise_floor} dBm)`;
+    }
+    if (nodeStats.lowest_noise_floor) {
+        document.getElementById('lowest-noise-floor').textContent = 
+            `${nodeStats.lowest_noise_floor.name} (${nodeStats.lowest_noise_floor.noise_floor} dBm)`;
+    }
+    
+    // Top owners
+    if (nodeStats.top_owners && nodeStats.top_owners.length > 0) {
+        const ownersHtml = nodeStats.top_owners.slice(0, 5).map(o => 
+            `${o.owner}: ${o.count} nodes`
+        ).join('<br>');
+        document.getElementById('top-owners').innerHTML = ownersHtml;
+    }
+}
+
+// Initialize map
+function initializeMap() {
+    const data = window.networkData;
+    
+    // Calculate center
+    let center_lat = -33.8688, center_lon = 151.2093;
+    if (data.nodes && Object.keys(data.nodes).length > 0) {
+        const lats = [], lons = [];
+        for (const node of Object.values(data.nodes)) {
+            if (node.lat && node.lon) {
+                lats.push(node.lat);
+                lons.push(node.lon);
             }
+        }
+        if (lats.length > 0) {
+            center_lat = lats.reduce((a, b) => a + b, 0) / lats.length;
+            center_lon = lons.reduce((a, b) => a + b, 0) / lons.length;
+        }
+    }
+    
+    // Create map
+    window.map_obj = L.map('map', {
+        center: [center_lat, center_lon],
+        zoom: 11,
+        zoomControl: false,
+        maxZoom: 18
+    });
+    
+    // Add default tile layer
+    changeMapTile('OpenStreetMap');
+    
+    console.log('Map initialized');
+}
+
+// Change map tile layer
+function changeMapTile(type) {
+    if (window.currentTileLayer) {
+        window.map_obj.removeLayer(window.currentTileLayer);
+    }
+    
+    let tileUrl, attribution;
+    switch(type) {
+        case 'Satellite':
+            tileUrl = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
+            attribution = '&copy; Esri';
+            break;
+        case 'Topographic':
+            tileUrl = 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png';
+            attribution = '&copy; OpenTopoMap';
+            break;
+        default:
+            tileUrl = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
+            attribution = '&copy; OpenStreetMap contributors';
+    }
+    
+    window.currentTileLayer = L.tileLayer(tileUrl, {
+        attribution: attribution,
+        maxZoom: 18
+    }).addTo(window.map_obj);
+}
+
+// Render all map elements
+function renderMap() {
+    renderNodes();
+    renderLinks();
+    renderCoverage();
+}
+
+// Render nodes
+function renderNodes() {
+    const data = window.networkData;
+    
+    for (const [pubkey, node] of Object.entries(data.nodes || {})) {
+        if (!node.lat || !node.lon) continue;
+        
+        const color = getNodeColor(node.type);
+        const icon = getNodeIcon(node);
+        
+        const marker = L.marker([node.lat, node.lon], {
+            icon: L.divIcon({
+                html: icon,
+                iconSize: [null, null],
+                iconAnchor: [18, 18],
+                className: 'empty'
+            })
+        }).addTo(window.map_obj);
+        
+        // Add popup
+        marker.bindPopup(createNodePopup(node, pubkey));
+        
+        // Store marker
+        window.allMarkers[node.name] = {
+            marker: marker,
+            node: node
+        };
+    }
+    
+    console.log(`Rendered ${Object.keys(window.allMarkers).length} nodes`);
+}
+
+// Get node color based on type
+function getNodeColor(type) {
+    const colors = {
+        [NODE_TYPE_UNKNOWN]: '#808080',
+        [NODE_TYPE_USER]: '#3388ff',
+        [NODE_TYPE_REPEATER]: '#ff3333',
+        [NODE_TYPE_ROUTER]: '#ff3333',
+        [NODE_TYPE_ROOM_SERVER]: '#33cc33'
+    };
+    return colors[type] || '#808080';
+}
+
+// Get node icon HTML
+function getNodeIcon(node) {
+    const color = getNodeColor(node.type);
+    const border = node.estimated ? '#FFA500' : '#222222';
+    const emoji = getNodeEmoji(node.name);
+    
+    return `
+        <div style="display: flex; align-items: center; white-space: nowrap; cursor: pointer;"
+             onclick="filterNodeLinks('${node.name.replace(/'/g, "\\'")}', ${node.lat}, ${node.lon})">
+            <div style="
+                width: 36px;
+                height: 36px;
+                min-width: 36px;
+                min-height: 36px;
+                border-radius: 50%;
+                background-color: ${color};
+                border: 3px solid ${border};
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 14px;
+                font-weight: bold;
+                color: white;
+                text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+                box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+                flex-shrink: 0;
+            ">
+                ${emoji}
+            </div>
+            <div style="
+                font-size: 11px;
+                font-weight: 600;
+                color: #222222;
+                margin-left: 8px;
+                text-shadow: 
+                    -1px -1px 1px white,
+                    1px -1px 1px white,
+                    -1px 1px 1px white,
+                    1px 1px 1px white;
+            ">
+                ${node.name}
+            </div>
+        </div>
+    `;
+}
+
+// Get emoji from node name
+function getNodeEmoji(name) {
+    // Extract emoji if present
+    const emojiRegex = /[\u{1F300}-\u{1F9FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]/u;
+    const match = name.match(emojiRegex);
+    if (match) return match[0];
+    
+    // Default to first 2 chars
+    return name.substring(0, 2).toUpperCase();
+}
+
+// Create node popup HTML
+function createNodePopup(node, pubkey) {
+    const typeName = getNodeTypeName(node.type);
+    
+    return `
+        <div style="font-family: Arial; min-width: 300px; max-height: 500px; overflow-y: auto;">
+            <h3 style="margin: 0 0 10px 0; color: #333; border-bottom: 2px solid #4CAF50; padding-bottom: 5px;">
+                ${node.name}
+            </h3>
             
-            console.log('Map elements rendered');
-        }
-        
-        // Helper functions
-        function getNodeColor(type) {
-            const colors = {
-                0: '#808080', // Unknown - gray
-                1: '#3388ff', // User - blue
-                2: '#ff3333', // Repeater - red
-                3: '#33cc33'  // Room Server - green
-            };
-            return colors[type] || '#808080';
-        }
-        
-        function getNodeTypeName(type) {
-            const names = {
-                0: 'Unknown',
-                1: 'User',
-                2: 'Repeater',
-                3: 'Room Server'
-            };
-            return names[type] || 'Unknown';
-        }
-        
-        function snrToColor(snr) {
-            const clamped = Math.max(-20, Math.min(5, snr));
-            const normalized = (clamped + 20) / 25.0;
+            <div style="margin-bottom: 10px;">
+                <h4 style="margin: 5px 0; color: #666; font-size: 14px;">Basic Information</h4>
+                <table style="width: 100%; font-size: 12px; border-collapse: collapse;">
+                    <tr style="background: #f5f5f5;">
+                        <td style="padding: 4px 8px; font-weight: bold; width: 40%;">Type:</td>
+                        <td style="padding: 4px 8px;">${typeName}</td>
+                    </tr>
+                    ${node.estimated ? `
+                    <tr>
+                        <td style="padding: 4px 8px; font-weight: bold;">Position:</td>
+                        <td style="padding: 4px 8px; color: #ff9800;">Estimated</td>
+                    </tr>
+                    ` : ''}
+                </table>
+            </div>
             
-            let r, g;
-            if (normalized < 0.5) {
-                const t = normalized * 2;
-                r = 255;
-                g = Math.floor(255 * t);
-            } else {
-                const t = (normalized - 0.5) * 2;
-                r = Math.floor(255 * (1 - t));
-                g = 255;
+            <div style="margin-bottom: 10px;">
+                <h4 style="margin: 5px 0; color: #666; font-size: 14px;">Location</h4>
+                <table style="width: 100%; font-size: 12px; border-collapse: collapse;">
+                    <tr style="background: #f5f5f5;">
+                        <td style="padding: 4px 8px; font-weight: bold; width: 40%;">Latitude:</td>
+                        <td style="padding: 4px 8px; font-family: monospace;">${node.lat.toFixed(6)}</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 4px 8px; font-weight: bold;">Longitude:</td>
+                        <td style="padding: 4px 8px; font-family: monospace;">${node.lon.toFixed(6)}</td>
+                    </tr>
+                    ${node.elevation ? `
+                    <tr style="background: #f5f5f5;">
+                        <td style="padding: 4px 8px; font-weight: bold;">Elevation:</td>
+                        <td style="padding: 4px 8px;">${node.elevation}m</td>
+                    </tr>
+                    ` : ''}
+                </table>
+            </div>
+            
+            ${node.status ? `
+            <div style="margin-bottom: 10px;">
+                <h4 style="margin: 5px 0; color: #666; font-size: 14px;">Status</h4>
+                <table style="width: 100%; font-size: 12px; border-collapse: collapse;">
+                    <tr style="background: #f5f5f5;">
+                        <td style="padding: 4px 8px; font-weight: bold; width: 40%;">Battery:</td>
+                        <td style="padding: 4px 8px;">${node.status.bat || 0}mV</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 4px 8px; font-weight: bold;">Uptime:</td>
+                        <td style="padding: 4px 8px;">${formatUptime(node.status.uptime || 0)}</td>
+                    </tr>
+                    <tr style="background: #f5f5f5;">
+                        <td style="padding: 4px 8px; font-weight: bold;">Airtime:</td>
+                        <td style="padding: 4px 8px;">${((node.status.airtime || 0) / 10).toFixed(1)}%</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 4px 8px; font-weight: bold;">SNR:</td>
+                        <td style="padding: 4px 8px;">${(node.status.last_snr || 0).toFixed(2)} dB</td>
+                    </tr>
+                    <tr style="background: #f5f5f5;">
+                        <td style="padding: 4px 8px; font-weight: bold;">RSSI:</td>
+                        <td style="padding: 4px 8px;">${node.status.last_rssi || 0} dBm</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 4px 8px; font-weight: bold;">Noise Floor:</td>
+                        <td style="padding: 4px 8px;">${node.status.noise_floor || 0} dBm</td>
+                    </tr>
+                </table>
+            </div>
+            ` : ''}
+            
+            <div style="margin-bottom: 10px;">
+                <h4 style="margin: 5px 0; color: #666; font-size: 14px;">Public Key</h4>
+                <div style="background: #f0f0f0; padding: 8px; border-radius: 4px; word-break: break-all; font-family: monospace; font-size: 10px;">
+                    ${pubkey}
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+// Get node type name
+function getNodeTypeName(type) {
+    const names = {
+        [NODE_TYPE_UNKNOWN]: 'Unknown',
+        [NODE_TYPE_USER]: 'User',
+        [NODE_TYPE_REPEATER]: 'Repeater',
+        [NODE_TYPE_ROUTER]: 'Router',
+        [NODE_TYPE_ROOM_SERVER]: 'Room Server'
+    };
+    return names[type] || 'Unknown';
+}
+
+// Format uptime
+function formatUptime(seconds) {
+    const days = Math.floor(seconds / 86400);
+    const hours = Math.floor((seconds % 86400) / 3600);
+    const mins = Math.floor((seconds % 3600) / 60);
+    
+    if (days > 0) return `${days}d ${hours}h`;
+    if (hours > 0) return `${hours}h ${mins}m`;
+    return `${mins}m`;
+}
+
+// Render links
+function renderLinks() {
+    const data = window.networkData;
+    
+    for (const link of (data.links || [])) {
+        const fromNode = findNodeByPrefix(link.from_prefix);
+        const toNode = data.nodes[link.to_pubkey];
+        
+        if (!fromNode || !toNode || !fromNode.lat || !toNode.lat) continue;
+        
+        const color = snrToColor(link.snr || 0);
+        const weight = Math.max(2, Math.min(6, (link.snr || 0) / 5 + 3));
+        
+        const polyline = L.polyline([
+            [fromNode.lat, fromNode.lon],
+            [toNode.lat, toNode.lon]
+        ], {
+            color: color,
+            weight: weight,
+            opacity: 0.6,
+            className: 'rf-link'
+        }).addTo(window.map_obj);
+        
+        polyline.bindPopup(`
+            <b>RF Link</b><br>
+            From: ${fromNode.name}<br>
+            To: ${toNode.name}<br>
+            SNR: ${(link.snr || 0).toFixed(2)} dB<br>
+            Distance: ${(haversineDistance(fromNode.lat, fromNode.lon, toNode.lat, toNode.lon) / 1000).toFixed(2)} km
+        `);
+        
+        window.allLinks.push({
+            line: polyline,
+            from: fromNode.name,
+            to: toNode.name,
+            snr: link.snr
+        });
+    }
+    
+    console.log(`Rendered ${window.allLinks.length} RF links`);
+}
+
+// Convert SNR to color
+function snrToColor(snr) {
+    const clamped = Math.max(-20, Math.min(5, snr));
+    const normalized = (clamped + 20) / 25.0;
+    
+    let r, g;
+    if (normalized < 0.5) {
+        const t = normalized * 2;
+        r = 255;
+        g = Math.floor(255 * t);
+    } else {
+        const t = (normalized - 0.5) * 2;
+        r = Math.floor(255 * (1 - t));
+        g = 255;
+    }
+    
+    return '#' + r.toString(16).padStart(2, '0') + g.toString(16).padStart(2, '0') + '00';
+}
+
+// Haversine distance calculation
+function haversineDistance(lat1, lon1, lat2, lon2) {
+    const R = 6371000; // meters
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+            Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+            Math.sin(dLon/2) * Math.sin(dLon/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return R * c;
+}
+
+// Find node by pubkey prefix
+function findNodeByPrefix(prefix) {
+    for (const [pubkey, node] of Object.entries(window.networkData.nodes || {})) {
+        if (pubkey.startsWith(prefix)) {
+            return node;
+        }
+    }
+    return null;
+}
+
+// Render coverage
+function renderCoverage() {
+    const data = window.networkData;
+    const coverage = data.coverage || {};
+    
+    for (const [pubkey, coverageData] of Object.entries(coverage)) {
+        if (!coverageData.heatmap_points || coverageData.heatmap_points.length === 0) continue;
+        
+        const node = data.nodes[pubkey];
+        if (!node) continue;
+        
+        // Create circle for simple coverage visualization
+        const circle = L.circle([node.lat, node.lon], {
+            color: '#ff3333',
+            fillColor: '#ff3333',
+            fillOpacity: 0.1,
+            radius: coverageData.radius || 5000,
+            weight: 1
+        });
+        
+        window.coverageCircles[node.name] = circle;
+    }
+    
+    console.log(`Loaded coverage for ${Object.keys(window.coverageCircles).length} repeaters`);
+}
+
+// Toggle node type visibility
+function toggleNodeType(type, checked) {
+    for (const [name, markerData] of Object.entries(window.allMarkers)) {
+        const node = markerData.node;
+        let shouldShow = checked;
+        
+        if (type === 'users' && node.type === NODE_TYPE_USER) {
+            // Toggle users
+        } else if (type === 'repeaters' && (node.type === NODE_TYPE_REPEATER || node.type === NODE_TYPE_ROUTER)) {
+            // Toggle repeaters
+        } else if (type === 'roomservers' && node.type === NODE_TYPE_ROOM_SERVER) {
+            // Toggle room servers
+        } else if (type === 'unknown' && node.type === NODE_TYPE_UNKNOWN) {
+            // Toggle unknown
+        } else {
+            continue; // Not this type
+        }
+        
+        if (shouldShow) {
+            window.map_obj.addLayer(markerData.marker);
+        } else {
+            window.map_obj.removeLayer(markerData.marker);
+        }
+    }
+}
+
+// Toggle links
+function toggleLinks(type, checked) {
+    const links = (type === 'rf') ? window.allLinks : window.allRouteLinks;
+    
+    for (const link of links) {
+        if (checked) {
+            window.map_obj.addLayer(link.line);
+        } else {
+            window.map_obj.removeLayer(link.line);
+        }
+    }
+}
+
+// Toggle inactive repeaters filter
+function toggleInactiveRepeaters(checked) {
+    if (checked) {
+        currentFilter = 'inactive-repeaters';
+        // Implementation would filter based on last_seen time
+    } else {
+        clearFilter();
+    }
+}
+
+// Toggle estimated nodes filter
+function toggleEstimatedNodes(checked) {
+    if (checked) {
+        currentFilter = 'estimated-nodes';
+        for (const [name, markerData] of Object.entries(window.allMarkers)) {
+            if (!markerData.node.estimated) {
+                window.map_obj.removeLayer(markerData.marker);
             }
-            
-            return '#' + r.toString(16).padStart(2, '0') + g.toString(16).padStart(2, '0') + '00';
+        }
+    } else {
+        clearFilter();
+    }
+}
+
+// Clear filter
+function clearFilter() {
+    currentFilter = null;
+    document.getElementById('filter-view').style.display = 'none';
+    document.getElementById('stats-view').style.display = 'block';
+    
+    // Show all markers again
+    for (const markerData of Object.values(window.allMarkers)) {
+        window.map_obj.addLayer(markerData.marker);
+    }
+}
+
+// Filter node links (when clicking a node)
+function filterNodeLinks(nodeName, lat, lon) {
+    console.log('Filtering links for node:', nodeName);
+    currentFilter = 'node-links';
+    
+    document.getElementById('stats-view').style.display = 'none';
+    document.getElementById('filter-view').style.display = 'block';
+    document.getElementById('filter-details').innerHTML = 
+        `<b>Showing links for:</b><br>${nodeName}<br><br>` +
+        `<button onclick="window.map_obj.setView([${lat}, ${lon}], 13)" ` +
+        `style="padding: 4px 8px; background: #2196F3; color: white; border: none; border-radius: 3px; cursor: pointer; margin-top: 5px;">` +
+        `Center on Node</button>`;
+    
+    // Hide all markers except this node and its connections
+    const connections = new Set();
+    connections.add(nodeName);
+    
+    // Find connected nodes
+    for (const link of window.allLinks) {
+        if (link.from === nodeName) connections.add(link.to);
+        if (link.to === nodeName) connections.add(link.from);
+    }
+    
+    // Show/hide markers
+    for (const [name, markerData] of Object.entries(window.allMarkers)) {
+        if (connections.has(name)) {
+            window.map_obj.addLayer(markerData.marker);
+        } else {
+            window.map_obj.removeLayer(markerData.marker);
+        }
+    }
+    
+    // Show/hide links
+    for (const link of window.allLinks) {
+        if (connections.has(link.from) && connections.has(link.to)) {
+            window.map_obj.addLayer(link.line);
+        } else {
+            window.map_obj.removeLayer(link.line);
+        }
+    }
+}
+
+// Initialize search
+function initializeSearch() {
+    const searchInput = document.getElementById('node-search');
+    const searchResults = document.getElementById('search-results');
+    
+    searchInput.addEventListener('input', function() {
+        const query = this.value.toLowerCase().trim();
+        
+        if (query.length < 2) {
+            searchResults.style.display = 'none';
+            return;
         }
         
-        function findNodeByPrefix(prefix) {
-            if (!window.networkData || !window.networkData.nodes) return null;
-            for (const [pubkey, node] of Object.entries(window.networkData.nodes)) {
-                if (pubkey.startsWith(prefix)) {
-                    return node;
-                }
+        const matches = [];
+        for (const [name, markerData] of Object.entries(window.allMarkers)) {
+            if (name.toLowerCase().includes(query)) {
+                matches.push({name, node: markerData.node});
             }
-            return null;
         }
         
-        // Start loading data when page loads
-        window.addEventListener('load', loadNetworkData);
-    </script>
+        if (matches.length === 0) {
+            searchResults.innerHTML = '<div style="padding: 8px; color: #666;">No results found</div>';
+            searchResults.style.display = 'block';
+            return;
+        }
+        
+        const html = matches.slice(0, 10).map(m => 
+            `<div style="padding: 6px 8px; cursor: pointer; border-bottom: 1px solid #eee;" 
+                  onclick="selectSearchResult('${m.name.replace(/'/g, "\\'")}', ${m.node.lat}, ${m.node.lon})"
+                  onmouseover="this.style.background='#f0f0f0'" 
+                  onmouseout="this.style.background='white'">
+                ${m.name}
+            </div>`
+        ).join('');
+        
+        searchResults.innerHTML = html;
+        searchResults.style.display = 'block';
+    });
+}
+
+// Select search result
+function selectSearchResult(name, lat, lon) {
+    document.getElementById('search-results').style.display = 'none';
+    document.getElementById('node-search').value = '';
+    window.map_obj.setView([lat, lon], 15);
+    
+    // Open popup for this node
+    const markerData = window.allMarkers[name];
+    if (markerData) {
+        markerData.marker.openPopup();
+    }
+}
+
+// Initialize mobile toggle
+function initializeMobileToggle() {
+    const toggleBtn = document.getElementById('mobile-toggle');
+    const panel = document.getElementById('info-panel');
+    
+    toggleBtn.addEventListener('click', function() {
+        if (panel.style.display === 'none' || panel.style.display === '') {
+            panel.style.display = 'block';
+            document.getElementById('toggle-icon').textContent = '✖';
+            document.getElementById('toggle-text').textContent = 'Close';
+        } else {
+            panel.style.display = 'none';
+            document.getElementById('toggle-icon').textContent = 'ℹ️';
+            document.getElementById('toggle-text').textContent = 'Info';
+        }
+    });
+    
+    // Check if mobile
+    function checkMobile() {
+        if (window.innerWidth <= 768) {
+            toggleBtn.style.display = 'block';
+            panel.style.display = 'none';
+        } else {
+            toggleBtn.style.display = 'none';
+            panel.style.display = 'block';
+        }
+    }
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+}
+
+// Start loading when page loads
+window.addEventListener('load', loadNetworkData);
+</script>
+
 </body>
 </html>
