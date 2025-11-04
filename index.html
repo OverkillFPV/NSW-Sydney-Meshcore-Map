@@ -1774,9 +1774,6 @@
                 for (var i = 0; i < linkMetadata.length; i++) {
                     var link = linkMetadata[i];
                     
-                    // Skip direct TCP connections - only show RF links
-                    if (link.discovery_method === 'direct_connection') continue;
-                    
                     // Look up nodes by pubkey to get names
                     var fromNode = nodeData[link.from_pubkey];
                     var toNode = nodeData[link.to_pubkey];
@@ -2163,44 +2160,64 @@
         
         console.log('Rendered ' + routeCount + ' route polylines (skipped ' + skippedRoutes + ' with invalid coords)');
         
-        // Draw RF links (traces) from linkMetadata
+        // Draw RF links (traces) from node neighbour data
+        // The linkMetadata contains TCP discovery data, not actual RF links
+        // Real RF links are stored in each node's route_neighbors field
         var rfLinkGroup = window.L.featureGroup();
         var linkCount = 0;
         var skippedLinks = 0;
+        var drawnPairs = {}; // Track drawn pairs to avoid duplicates
         
-        console.log('Drawing RF links from linkMetadata (' + linkMetadata.length + ' entries)...');
-        for (var i = 0; i < linkMetadata.length; i++) {
-            var link = linkMetadata[i];
+        console.log('Drawing RF links from node neighbour data...');
+        
+        // Build RF links from neighbour data in each node
+        for (var nodePubkey in nodeData) {
+            var node = nodeData[nodePubkey];
+            var routeNeighbors = node.route_neighbors;
             
-            // Skip direct TCP connections - only draw RF links
-            if (link.discovery_method === 'direct_connection') {
-                console.log('  Skipping direct TCP connection: ' + link.from_prefix + ' → ' + link.to_prefix);
-                skippedLinks++;
-                continue;
-            }
+            if (!routeNeighbors || Object.keys(routeNeighbors).length === 0) continue;
+            if (!node.lat || !node.lon || node.lat === 0 || node.lon === 0) continue;
             
-            // Look up coordinates from nodeData using pubkeys
-            var fromNode = nodeData[link.from_pubkey];
-            var toNode = nodeData[link.to_pubkey];
-            
-            if (!fromNode || !toNode) {
-                console.log('  Skipping RF link: node not found (from=' + (fromNode ? 'OK' : 'MISSING') + ', to=' + (toNode ? 'OK' : 'MISSING') + ')');
-                skippedLinks++;
-                continue;
-            }
-            
-            var fromLat = fromNode.lat;
-            var fromLon = fromNode.lon;
-            var toLat = toNode.lat;
-            var toLon = toNode.lon;
-            
-            // Skip links with invalid coordinates
-            if (!fromLat || !fromLon || !toLat || !toLon ||
-                fromLat === 0 || fromLon === 0 || toLat === 0 || toLon === 0) {
-                console.log('  Skipping RF link with 0,0 coords: ' + fromNode.name + ' → ' + toNode.name);
-                skippedLinks++;
-                continue;
-            }
+            // Process each neighbour
+            for (var neighborPrefix in routeNeighbors) {
+                // Find the neighbour node by prefix
+                var neighborNode = null;
+                var neighborPubkey = null;
+                
+                for (var pk in nodeData) {
+                    if (pk.startsWith(neighborPrefix) || pk === neighborPrefix) {
+                        neighborNode = nodeData[pk];
+                        neighborPubkey = pk;
+                        break;
+                    }
+                }
+                
+                if (!neighborNode || !neighborNode.lat || !neighborNode.lon || 
+                    neighborNode.lat === 0 || neighborNode.lon === 0) {
+                    continue;
+                }
+                
+                // Create unique pair key to avoid drawing same link twice
+                var pairKey = [nodePubkey, neighborPubkey].sort().join('_');
+                if (drawnPairs[pairKey]) continue;
+                drawnPairs[pairKey] = true;
+                
+                // Use the neighbour data (may have SNR/RSSI if available)
+                var neighborData = routeNeighbors[neighborPrefix];
+                var link = {
+                    from_pubkey: nodePubkey,
+                    to_pubkey: neighborPubkey,
+                    snr: neighborData.snr || 0,
+                    rssi: neighborData.rssi || null,
+                    timestamp: neighborData.last_seen || 0
+                };
+                
+                var fromNode = node;
+                var toNode = neighborNode;
+                var fromLat = fromNode.lat;
+                var fromLon = fromNode.lon;
+                var toLat = toNode.lat;
+                var toLon = toNode.lon;
             
             // Calculate color based on SNR using gradient (red→yellow→green)
             var snr = link.snr || 0;
@@ -2221,7 +2238,11 @@
                 g = 255;
                 b = 0;
             }
-            var color = '#' + r.toString(16).padStart(2, '0') + g.toString(16).padStart(2, '0') + b.toString(16).padStart(2, '0');
+            // Convert to hex with padding
+            var rHex = ('0' + r.toString(16)).slice(-2);
+            var gHex = ('0' + g.toString(16)).slice(-2);
+            var bHex = ('0' + b.toString(16)).slice(-2);
+            var color = '#' + rHex + gHex + bHex;
             
             // Calculate distance using Haversine formula
             var R = 6371000; // Earth radius in meters
@@ -2258,6 +2279,8 @@
                 [fromLat, fromLon],
                 [toLat, toLon]
             ];
+            
+            console.log('  Drawing RF link: ' + fromNode.name + ' → ' + toNode.name + ' (SNR: ' + snr.toFixed(1) + 'dB, color: ' + color + ')');
             
             var polyline = window.L.polyline(latLngs, {
                 color: color,
@@ -2301,7 +2324,8 @@
             rfLinkGroup.addLayer(labelMarker);
             
             linkCount++;
-        }
+            }  // End of neighbor loop
+        }  // End of node loop
         
         console.log('Rendered ' + linkCount + ' RF link polylines (skipped ' + skippedLinks + ' with invalid coords)');
         
