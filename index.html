@@ -24,99 +24,99 @@
 
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/Leaflet.awesome-markers/2.0.2/leaflet.awesome-markers.css"/>    <style>
 
-            * {
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/python-visualization/folium/folium/templates/leaflet.awesome.rotate.min.css"/>        * {
 
-    <style>            margin: 0;
+                margin: 0;
 
-        * {            padding: 0;
+    <style>            padding: 0;
 
-            margin: 0;            box-sizing: border-box;
+        * {            box-sizing: border-box;
 
-            padding: 0;        }
+            margin: 0;        }
 
-            box-sizing: border-box;        html, body {
+            padding: 0;        html, body {
 
-        }            width: 100%;
+            box-sizing: border-box;            width: 100%;
 
-        html {            height: 100%;
+        }            height: 100%;
 
-            margin: 0 !important;            overflow: hidden;
+                    overflow: hidden;
 
-            padding: 0 !important;            position: fixed;
+        html, body {            position: fixed;
 
-            width: 100% !important;        }
+            width: 100%;        }
 
-            height: 100% !important;        #map {
+            height: 100%;        #map {
 
-            overflow: hidden !important;            position: fixed;
+            margin: 0;            position: fixed;
 
-            position: fixed !important;            top: 0;
+            padding: 0;            top: 0;
 
-        }            left: 0;
+            overflow: hidden;            left: 0;
 
-        body {            right: 0;
+            position: fixed;            right: 0;
 
-            margin: 0 !important;            bottom: 0;
+        }            bottom: 0;
 
-            padding: 0 !important;            width: 100%;
+                    width: 100%;
 
-            width: 100% !important;            height: 100%;
+        #map {            height: 100%;
 
-            height: 100% !important;        }
+            position: fixed;        }
 
-            overflow: hidden !important;        #loading {
+            top: 0;        #loading {
 
-            position: fixed !important;            position: fixed;
+            left: 0;            position: fixed;
 
-        }            top: 50%;
+            right: 0;            top: 50%;
 
-        #map {            left: 50%;
+            bottom: 0;            left: 50%;
 
-            position: fixed !important;            transform: translate(-50%, -50%);
+            width: 100%;            transform: translate(-50%, -50%);
 
-            top: 0 !important;            background: rgba(0, 0, 0, 0.85);
+            height: 100%;            background: rgba(0, 0, 0, 0.85);
 
-            left: 0 !important;            color: white;
+            overflow: hidden;            color: white;
 
-            right: 0 !important;            padding: 30px 50px;
+        }            padding: 30px 50px;
 
-            bottom: 0 !important;            border-radius: 10px;
+                    border-radius: 10px;
 
-            width: 100% !important;            font-family: Arial, sans-serif;
+        /* Hide scrollbars */            font-family: Arial, sans-serif;
 
-            height: 100% !important;            font-size: 18px;
+        ::-webkit-scrollbar {            font-size: 18px;
 
-            overflow: hidden !important;            z-index: 10000;
+            width: 0px;            z-index: 10000;
 
-        }            text-align: center;
+            height: 0px;            text-align: center;
 
-                }
+            display: none;        }
 
-        /* Hide scrollbars */        .spinner {
+        }        .spinner {
 
-        ::-webkit-scrollbar {            border: 4px solid #f3f3f3;
+                    border: 4px solid #f3f3f3;
 
-            width: 0px !important;            border-top: 4px solid #667eea;
+        * {            border-top: 4px solid #667eea;
 
-            height: 0px !important;            border-radius: 50%;
+            scrollbar-width: none;            border-radius: 50%;
 
-            display: none !important;            width: 40px;
+            -ms-overflow-style: none;            width: 40px;
 
         }            height: 40px;
 
-        * {            animation: spin 1s linear infinite;
+                    animation: spin 1s linear infinite;
 
-            scrollbar-width: none !important;            margin: 20px auto 0;
-
-            -ms-overflow-style: none !important;        }
-
-        }        @keyframes spin {
-
-                    0% { transform: rotate(0deg); }
-
-        /* Ensure popups appear above all other elements */            100% { transform: rotate(360deg); }
+        /* Popup visibility */            margin: 20px auto 0;
 
         .leaflet-popup {        }
+
+            z-index: 10000 !important;        @keyframes spin {
+
+        }            0% { transform: rotate(0deg); }
+
+                    100% { transform: rotate(360deg); }
+
+        .leaflet-popup-pane {        }
 
             z-index: 10000 !important;        #error {
 
@@ -124,1227 +124,802 @@
 
                     position: fixed;
 
-        .leaflet-popup-pane {            top: 50%;
+        /* Path visibility control */            top: 50%;
 
-            z-index: 10000 !important;            left: 50%;
+        .leaflet-interactive.path-hidden {            left: 50%;
 
-        }            transform: translate(-50%, -50%);
+            display: none !important;            transform: translate(-50%, -50%);
 
-                    background: rgba(255, 0, 0, 0.9);
+            visibility: hidden !important;            background: rgba(255, 0, 0, 0.9);
 
-        /* Path visibility control */            color: white;
+            opacity: 0 !important;            color: white;
 
-        .leaflet-interactive.path-hidden {            padding: 30px 50px;
+        }            padding: 30px 50px;
 
-            display: none !important;            border-radius: 10px;
+                    border-radius: 10px;
 
-            visibility: hidden !important;            font-family: Arial, sans-serif;
+        .leaflet-interactive.path-visible {            font-family: Arial, sans-serif;
 
-            opacity: 0 !important;            z-index: 10001;
+            display: block !important;            z-index: 10001;
 
-        }            text-align: center;
+            visibility: visible !important;            text-align: center;
 
-                    max-width: 80%;
+            opacity: 1 !important;            max-width: 80%;
 
-        .leaflet-interactive.path-visible {        }
+        }        }
 
-            display: block !important;    </style>
+            </style>
 
-            visibility: visible !important;</head>
+        /* Info panel styling */</head>
 
-            opacity: 1 !important;<body>
+        #info-panel {<body>
 
-        }    <div id="loading">
+            position: fixed;    <div id="loading">
 
-                <div>Loading Network Map Data...</div>
+            top: 10px;        <div>Loading Network Map Data...</div>
 
-        /* Info panel */        <div class="spinner"></div>
+            left: 50px;        <div class="spinner"></div>
 
-        #info-panel {    </div>
+            width: 320px;    </div>
 
-            position: fixed;    <div id="error"></div>
+            max-height: 90vh;    <div id="error"></div>
 
-            top: 10px;    <div id="map"></div>
+            overflow-y: auto;    <div id="map"></div>
 
-            left: 50px;
+            background-color: white;
 
-            width: 320px;    <!-- Leaflet JavaScript -->
+            border: 2px solid grey;    <!-- Leaflet JavaScript -->
 
-            max-height: 90vh;    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+            z-index: 9999;    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
 
-            overflow-y: auto;            integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+            font-size: 14px;            integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
 
-            background-color: white;            crossorigin=""></script>
+            padding: 10px;            crossorigin=""></script>
 
-            border: 2px solid grey;    
+            border-radius: 5px;    
 
-            z-index: 9999;    <script>
+            box-shadow: 2px 2px 6px rgba(0,0,0,0.3);    <script>
 
-            font-size: 14px;        // Global variables
+        }        // Global variables
 
-            padding: 10px;        window.map_obj = null;
+                window.map_obj = null;
 
-            border-radius: 5px;        window.networkData = null;
+        /* Hide map controls */        window.networkData = null;
 
-            box-shadow: 2px 2px 6px rgba(0,0,0,0.3);        window.coverageDataCache = {};
+        .leaflet-control-zoom,        window.coverageDataCache = {};
 
-        }        window.coverageCircles = {};
+        .leaflet-control-fullscreen,        window.coverageCircles = {};
 
-                window.coverageCirclesVisible = false;
+        .leaflet-control-layers {        window.coverageCirclesVisible = false;
 
-        /* Hide map controls */        window.currentFilter = null;
+            display: none !important;        window.currentFilter = null;
 
-        .leaflet-control-zoom,        
+        }        
 
-        .leaflet-control-fullscreen,        // Load the network data JSON
+                // Load the network data JSON
 
-        .leaflet-control-layers {        function loadNetworkData() {
+        /* Mobile responsive design */        function loadNetworkData() {
 
-            display: none !important;            fetch('network_map_data.json')
+        @media (max-width: 768px) {            fetch('network_map_data.json')
 
-        }                .then(response => {
+            #info-panel {                .then(response => {
 
-                            if (!response.ok) {
+                top: 60px;                    if (!response.ok) {
 
-        /* Mobile responsive design */                        throw new Error('Failed to load network data: ' + response.statusText);
+                left: 10px;                        throw new Error('Failed to load network data: ' + response.statusText);
 
-        @media (max-width: 768px) {                    }
+                right: 10px;                    }
 
-            #info-panel {                    return response.json();
+                width: auto;                    return response.json();
 
-                top: 60px;                })
+                max-width: calc(100vw - 20px);                })
 
-                left: 10px;                .then(data => {
+                max-height: 60vh;                .then(data => {
 
-                right: 10px;                    console.log('Network data loaded successfully');
+                font-size: 14px;                    console.log('Network data loaded successfully');
 
-                width: auto;                    window.networkData = data;
+                padding: 12px;                    window.networkData = data;
 
-                max-width: calc(100vw - 20px);                    document.getElementById('loading').style.display = 'none';
+                display: none;                    document.getElementById('loading').style.display = 'none';
 
-                max-height: 60vh;                    initializeMap();
+            }                    initializeMap();
 
-                font-size: 14px;                })
+                            })
 
-                padding: 12px;                .catch(error => {
+            #info-panel h4 {                .catch(error => {
 
-                display: none;                    console.error('Error loading network data:', error);
+                font-size: 18px !important;                    console.error('Error loading network data:', error);
 
-            }                    document.getElementById('loading').style.display = 'none';
+                margin: 8px 0 !important;                    document.getElementById('loading').style.display = 'none';
 
-                                document.getElementById('error').style.display = 'block';
+            }                    document.getElementById('error').style.display = 'block';
 
-            #info-panel h4 {                    document.getElementById('error').innerHTML = 
+                                document.getElementById('error').innerHTML = 
 
-                font-size: 18px !important;                        '<h2>⚠️ Error Loading Map Data</h2>' +
+            #info-panel p {                        '<h2>⚠️ Error Loading Map Data</h2>' +
 
-                margin: 8px 0 !important;                        '<p style="margin-top: 10px;">' + error.message + '</p>' +
+                font-size: 13px !important;                        '<p style="margin-top: 10px;">' + error.message + '</p>' +
 
-            }                        '<p style="margin-top: 10px; font-size: 14px;">Please ensure network_map_data.json is available.</p>';
+                margin: 4px 0 !important;                        '<p style="margin-top: 10px; font-size: 14px;">Please ensure network_map_data.json is available.</p>';
 
-                            });
-
-            #info-panel p {        }
-
-                font-size: 13px !important;        
-
-                margin: 4px 0 !important;        // Initialize the map once data is loaded
-
-            }        function initializeMap() {
-
-                        const data = window.networkData;
-
-            #mobile-toggle {            
-
-                display: block !important;            // Calculate center from nodes
-
-            }            let center_lat, center_lon;
-
-        }            if (data.nodes && Object.keys(data.nodes).length > 0) {
-
-                        const lats = [];
-
-        /* Loading screen */                const lons = [];
-
-        #loading {                for (const node of Object.values(data.nodes)) {
-
-            position: fixed;                    if (node.lat && node.lon) {
-
-            top: 50%;                        lats.push(node.lat);
-
-            left: 50%;                        lons.push(node.lon);
-
-            transform: translate(-50%, -50%);                    }
-
-            background: rgba(0, 0, 0, 0.85);                }
-
-            color: white;                if (lats.length > 0) {
-
-            padding: 30px 50px;                    center_lat = lats.reduce((a, b) => a + b, 0) / lats.length;
-
-            border-radius: 10px;                    center_lon = lons.reduce((a, b) => a + b, 0) / lons.length;
-
-            font-family: Arial, sans-serif;                } else {
-
-            font-size: 18px;                    center_lat = -33.8688;
-
-            z-index: 10000;                    center_lon = 151.2093;
-
-            text-align: center;                }
-
-        }            } else {
-
-        .spinner {                center_lat = -33.8688;
-
-            border: 4px solid #f3f3f3;                center_lon = 151.2093;
-
-            border-top: 4px solid #667eea;            }
-
-            border-radius: 50%;            
-
-            width: 40px;            // Create the map
-
-            height: 40px;            window.map_obj = L.map('map', {
-
-            animation: spin 1s linear infinite;                center: [center_lat, center_lon],
-
-            margin: 20px auto 0;                zoom: 11,
-
-        }                zoomControl: true,
-
-        @keyframes spin {                maxZoom: 18
-
-            0% { transform: rotate(0deg); }            });
-
-            100% { transform: rotate(360deg); }            
-
-        }            // Add tile layer
-
-    </style>            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-
-</head>                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-
-<body>                maxZoom: 18
-
-                }).addTo(window.map_obj);
-
-<div id="loading">            
-
-    <div>Loading Network Map Data...</div>            console.log('Map initialized at:', center_lat, center_lon);
-
-    <div class="spinner"></div>            
-
-</div>            // Now render all map elements
-
-            renderMapElements();
-
-<div id="info-panel">        }
-
-    <div id="stats-view">        
-
-        <h4 style="margin: 0 0 5px 0;">Sydney Meshcore Mesh Map</h4>        // Render all map elements (nodes, links, etc.)
-
-        <p style="margin: 0; font-size: 12px;">        function renderMapElements() {
-
-            <b>Generated:</b> <span id="generated-time">Loading...</span><br>            console.log('Rendering map elements...');
-
-            <b>Nodes:</b> <span id="total-nodes">0</span>             
-
-            (<span id="nodes-with-gps">0</span> with GPS)<br>            // This is where we'll add nodes, links, coverage, etc.
-
-            <b>Links:</b> <span id="total-links">0</span><br>            // For now, just show a simple message
-
-            <b>RF Packets:</b> <span id="rf-packets">0</span>            const data = window.networkData;
-
-        </p>            console.log('Loaded data contains:');
-
-                    console.log('  - Nodes:', Object.keys(data.nodes || {}).length);
-
-        <hr style="margin: 10px 0;">            console.log('  - Links:', (data.links || []).length);
-
-                    console.log('  - Coverage data:', Object.keys(data.coverage || {}).length);
-
-        <h4 style="margin: 5px 0;">Node Types</h4>            
-
-        <div id="node-types" style="font-size: 11px; margin: 5px 0;">            // Add markers for nodes
-
-            <label style="display: block; margin: 5px 0; cursor: pointer;">            if (data.nodes) {
-
-                <input type="checkbox" id="show-users" checked onchange="toggleNodeType('users', this.checked)" style="transform: scale(0.9);">                for (const [pubkey, node] of Object.entries(data.nodes)) {
-
-                <span style="color: #3388ff;">● Users: <span id="user-count">0</span></span>                    if (node.lat && node.lon) {
-
-            </label>                        const marker = L.circleMarker([node.lat, node.lon], {
-
-            <label style="display: block; margin: 5px 0; cursor: pointer;">                            radius: 8,
-
-                <input type="checkbox" id="show-repeaters" checked onchange="toggleNodeType('repeaters', this.checked)" style="transform: scale(0.9);">                            fillColor: getNodeColor(node.type),
-
-                <span style="color: #ff3333;">● Repeaters: <span id="repeater-count">0</span></span>                            color: '#fff',
-
-            </label>                            weight: 2,
-
-            <label style="display: block; margin: 10px 0 5px 20px; cursor: pointer;">                            opacity: 1,
-
-                <input type="checkbox" id="filter-inactive-repeaters" onchange="toggleInactiveRepeaters(this.checked)" style="transform: scale(0.9);">                            fillOpacity: 0.8
-
-                <span style="color: #808080;">Only show inactive (48+ hrs): <span id="inactive-repeater-count">0</span></span>                        }).addTo(window.map_obj);
-
-            </label>                        
-
-            <label style="display: block; margin: 5px 0; cursor: pointer;">                        marker.bindPopup('<b>' + (node.name || 'Unknown') + '</b><br>Type: ' + getNodeTypeName(node.type));
-
-                <input type="checkbox" id="show-room-servers" checked onchange="toggleNodeType('roomservers', this.checked)" style="transform: scale(0.9);">                    }
-
-                <span style="color: #33cc33;">● Room Servers: <span id="room-server-count">0</span></span>                }
-
-            </label>            }
-
-            <label style="display: block; margin: 5px 0; cursor: pointer;">            
-
-                <input type="checkbox" id="show-unknown" checked onchange="toggleNodeType('unknown', this.checked)" style="transform: scale(0.9);">            // Add links
-
-                <span style="color: #808080;">● Unknown: <span id="unknown-count">0</span></span>            if (data.links) {
-
-            </label>                for (const link of data.links) {
-
-            <label style="display: block; margin: 10px 0 5px 20px; cursor: pointer;">                    // Find nodes by pubkey prefix
-
-                <input type="checkbox" id="filter-estimated-nodes" onchange="toggleEstimatedNodes(this.checked)" style="transform: scale(0.9);">                    const fromNode = findNodeByPrefix(link.from_prefix);
-
-                <span style="color: #888;">Only show estimated nodes: <span id="estimated-count">0</span></span>                    const toNode = data.nodes[link.to_pubkey];
-
-            </label>                    
-
-        </div>                    if (fromNode && toNode && fromNode.lat && fromNode.lon && toNode.lat && toNode.lon) {
-
-                                const snr = link.snr || 0;
-
-        <hr style="margin: 10px 0;">                        const color = snrToColor(snr);
-
-                                
-
-        <h4 style="margin: 5px 0;">Link Types</h4>                        L.polyline([
-
-        <div style="font-size: 11px; margin: 5px 0;">                            [fromNode.lat, fromNode.lon],
-
-            <label style="display: block; margin: 5px 0; cursor: pointer;">                            [toNode.lat, toNode.lon]
-
-                <input type="checkbox" id="show-rf-links" checked onchange="toggleLinks('rf', this.checked)" style="transform: scale(0.9);">                        ], {
-
-                <span>RF Links</span>                            color: color,
-
-            </label>                            weight: 3,
-
-            <label style="display: block; margin: 5px 0; cursor: pointer;">                            opacity: 0.6
-
-                <input type="checkbox" id="show-route-neighbours" checked onchange="toggleLinks('route', this.checked)" style="transform: scale(0.9);">                        }).addTo(window.map_obj).bindPopup(
-
-                <span>Route Neighbours</span>                            '<b>Link:</b> ' + (fromNode.name || '?') + ' → ' + (toNode.name || '?') + 
-
-            </label>                            '<br>SNR: ' + snr + ' dB'
-
-        </div>                        );
-
-                            }
-
-        <hr style="margin: 10px 0;">                }
+            }                });
 
                     }
 
-        <h4 style="margin: 5px 0;">Detailed Statistics</h4>            
+            .leaflet-marker-icon > div > div:last-child {        
 
-        <div id="detailed-stats" style="font-size: 11px; margin: 5px 0;">            console.log('Map elements rendered');
+                display: none !important;        // Initialize the map once data is loaded
 
-            <br>        }
+            }        function initializeMap() {
 
-            <b>Airtime Statistics:</b><br>        
+        }            const data = window.networkData;
 
-            Highest Airtime: <span id="highest-airtime">-</span><br>        // Helper functions
+                    
 
-            Highest RX Airtime: <span id="highest-rx-airtime">-</span><br>        function getNodeColor(type) {
+        @media (max-width: 480px) {            // Calculate center from nodes
 
-            Avg RX Airtime: <span id="avg-rx-airtime">0</span>%<br>            const colors = {
+            #info-panel {            let center_lat, center_lon;
 
-            Avg TX Airtime: <span id="avg-tx-airtime">0</span>%<br>                0: '#808080', // Unknown - gray
+                max-height: 55vh;            if (data.nodes && Object.keys(data.nodes).length > 0) {
 
-            <br>                1: '#3388ff', // User - blue
+                font-size: 13px;                const lats = [];
 
-            <b>Network Statistics:</b><br>                2: '#ff3333', // Repeater - red
+            }                const lons = [];
 
-            Longest Link: <span id="longest-link">-</span><br>                3: '#33cc33'  // Room Server - green
+                            for (const node of Object.values(data.nodes)) {
 
-            Longest Uptime: <span id="longest-uptime">-</span><br>            };
+            #info-panel h4 {                    if (node.lat && node.lon) {
 
-            Avg Noise Floor: <span id="avg-noise-floor">-</span><br>            return colors[type] || '#808080';
+                font-size: 16px !important;                        lats.push(node.lat);
 
-            Highest Noise Floor: <span id="highest-noise-floor">-</span><br>        }
+            }                        lons.push(node.lon);
 
-            Lowest Noise Floor: <span id="lowest-noise-floor">-</span><br>        
+        }                    }
 
-            Total Packets: <span id="total-packets">0</span><br>        function getNodeTypeName(type) {
+                        }
 
-            <br>            const names = {
+        /* Loading overlay */                if (lats.length > 0) {
 
-            <b>Clock Synchronization:</b><br>                0: 'Unknown',
+        #loading-overlay {                    center_lat = lats.reduce((a, b) => a + b, 0) / lats.length;
 
-            Avg Clock Error: <span id="avg-clock-error">-</span><br>                1: 'User',
+            position: fixed;                    center_lon = lons.reduce((a, b) => a + b, 0) / lons.length;
 
-            Max Clock Error: <span id="max-clock-error">-</span><br>                2: 'Repeater',
+            top: 0;                } else {
 
-            <br>                3: 'Room Server'
+            left: 0;                    center_lat = -33.8688;
 
-            <b>Top Node Owners:</b><br>            };
+            right: 0;                    center_lon = 151.2093;
 
-            <div id="top-owners" style="font-size: 11px; margin-left: 10px;"></div>            return names[type] || 'Unknown';
+            bottom: 0;                }
+
+            background: rgba(255, 255, 255, 0.9);            } else {
+
+            display: flex;                center_lat = -33.8688;
+
+            align-items: center;                center_lon = 151.2093;
+
+            justify-content: center;            }
+
+            z-index: 10000;            
+
+            flex-direction: column;            // Create the map
+
+        }            window.map_obj = L.map('map', {
+
+                        center: [center_lat, center_lon],
+
+        .spinner {                zoom: 11,
+
+            border: 4px solid #f3f3f3;                zoomControl: true,
+
+            border-top: 4px solid #3388ff;                maxZoom: 18
+
+            border-radius: 50%;            });
+
+            width: 50px;            
+
+            height: 50px;            // Add tile layer
+
+            animation: spin 1s linear infinite;            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+
+        }                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+
+                        maxZoom: 18
+
+        @keyframes spin {            }).addTo(window.map_obj);
+
+            0% { transform: rotate(0deg); }            
+
+            100% { transform: rotate(360deg); }            console.log('Map initialized at:', center_lat, center_lon);
+
+        }            
+
+    </style>            // Now render all map elements
+
+</head>            renderMapElements();
+
+<body>        }
+
+    <!-- Loading overlay -->        
+
+    <div id="loading-overlay">        // Render all map elements (nodes, links, etc.)
+
+        <div class="spinner"></div>        function renderMapElements() {
+
+        <p style="margin-top: 20px; font-size: 16px; color: #333;">Loading network map...</p>            console.log('Rendering map elements...');
+
+    </div>            
+
+                // This is where we'll add nodes, links, coverage, etc.
+
+    <!-- Map container -->            // For now, just show a simple message
+
+    <div id="map"></div>            const data = window.networkData;
+
+                console.log('Loaded data contains:');
+
+    <!-- Info panel -->            console.log('  - Nodes:', Object.keys(data.nodes || {}).length);
+
+    <div id="info-panel">            console.log('  - Links:', (data.links || []).length);
+
+        <div id="stats-view">            console.log('  - Coverage data:', Object.keys(data.coverage || {}).length);
+
+            <h4 style="margin: 0 0 5px 0;">Sydney Meshcore Mesh Map</h4>            
+
+            <p style="margin: 0; font-size: 12px;">            // Add markers for nodes
+
+                <b>Generated:</b> <span id="generated-time">Loading...</span><br>            if (data.nodes) {
+
+                <b>Nodes:</b> <span id="node-count">0</span>                 for (const [pubkey, node] of Object.entries(data.nodes)) {
+
+                (<span id="gps-count">0</span> with GPS)<br>                    if (node.lat && node.lon) {
+
+                <b>Links:</b> <span id="link-count">0</span><br>                        const marker = L.circleMarker([node.lat, node.lon], {
+
+                <b>RF Packets:</b> <span id="packet-count">0</span>                            radius: 8,
+
+            </p>                            fillColor: getNodeColor(node.type),
+
+                                        color: '#fff',
+
+            <hr style="margin: 10px 0;">                            weight: 2,
+
+                                        opacity: 1,
+
+            <h4 style="margin: 5px 0;">Node Types</h4>                            fillOpacity: 0.8
+
+            <div id="node-types" style="font-size: 11px; margin: 5px 0;">                        }).addTo(window.map_obj);
+
+                <label style="display: block; margin: 5px 0; cursor: pointer;">                        
+
+                    <input type="checkbox" id="show-users" checked onchange="toggleNodeType('users', this.checked)" style="transform: scale(0.9);">                        marker.bindPopup('<b>' + (node.name || 'Unknown') + '</b><br>Type: ' + getNodeTypeName(node.type));
+
+                    <span style="color: #3388ff;">● Users: <span id="user-count">0</span></span>                    }
+
+                </label>                }
+
+                <label style="display: block; margin: 5px 0; cursor: pointer;">            }
+
+                    <input type="checkbox" id="show-repeaters" checked onchange="toggleNodeType('repeaters', this.checked)" style="transform: scale(0.9);">            
+
+                    <span style="color: #ff3333;">● Repeaters: <span id="repeater-count">0</span></span>            // Add links
+
+                </label>            if (data.links) {
+
+                <label style="display: block; margin: 10px 0 5px 20px; cursor: pointer;">                for (const link of data.links) {
+
+                    <input type="checkbox" id="filter-inactive-repeaters" onchange="toggleInactiveRepeaters(this.checked)" style="transform: scale(0.9);">                    // Find nodes by pubkey prefix
+
+                    <span style="font-size: 10px;">Hide Inactive Repeaters</span>                    const fromNode = findNodeByPrefix(link.from_prefix);
+
+                </label>                    const toNode = data.nodes[link.to_pubkey];
+
+            </div>                    
+
+                                if (fromNode && toNode && fromNode.lat && fromNode.lon && toNode.lat && toNode.lon) {
+
+            <hr style="margin: 10px 0;">                        const snr = link.snr || 0;
+
+                                    const color = snrToColor(snr);
+
+            <h4 style="margin: 5px 0;">Link Filters</h4>                        
+
+            <div style="font-size: 11px; margin: 5px 0;">                        L.polyline([
+
+                <label style="display: block; margin: 5px 0; cursor: pointer;">                            [fromNode.lat, fromNode.lon],
+
+                    <input type="checkbox" id="show-links" checked onchange="toggleLinks(this.checked)" style="transform: scale(0.9);">                            [toNode.lat, toNode.lon]
+
+                    Show RF Links                        ], {
+
+                </label>                            color: color,
+
+                <label style="display: block; margin: 5px 0; cursor: pointer;">                            weight: 3,
+
+                    <input type="checkbox" id="show-coverage" onchange="toggleCoverage(this.checked)" style="transform: scale(0.9);">                            opacity: 0.6
+
+                    Show Coverage Zones                        }).addTo(window.map_obj).bindPopup(
+
+                </label>                            '<b>Link:</b> ' + (fromNode.name || '?') + ' → ' + (toNode.name || '?') + 
+
+            </div>                            '<br>SNR: ' + snr + ' dB'
+
+                                    );
+
+            <hr style="margin: 10px 0;">                    }
+
+                            }
+
+            <button onclick="resetFilters()" style="width: 100%; padding: 8px; font-size: 12px; background: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer;">            }
+
+                Reset All Filters            
+
+            </button>            console.log('Map elements rendered');
 
         </div>        }
 
-                
+    </div>        
 
-        <hr style="margin: 10px 0;">        function snrToColor(snr) {
+            // Helper functions
 
-                    const clamped = Math.max(-20, Math.min(5, snr));
+    <!-- Leaflet JS -->        function getNodeColor(type) {
 
-        <h4 style="margin: 5px 0;">Map Tiles</h4>            const normalized = (clamped + 20) / 25.0;
+    <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.3/dist/leaflet.js"></script>            const colors = {
 
-        <div style="font-size: 11px; margin: 5px 0;">            
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>                0: '#808080', // Unknown - gray
 
-            <label style="display: block; margin: 5px 0; cursor: pointer;">            let r, g;
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/js/bootstrap.bundle.min.js"></script>                1: '#3388ff', // User - blue
 
-                <input type="radio" name="map-tile" value="OpenStreetMap" checked onchange="changeMapTile(this.value)" style="transform: scale(0.9);">             if (normalized < 0.5) {
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Leaflet.awesome-markers/2.0.2/leaflet.awesome-markers.js"></script>                2: '#ff3333', // Repeater - red
 
-                OpenStreetMap                const t = normalized * 2;
+                    3: '#33cc33'  // Room Server - green
 
-            </label>                r = 255;
+    <script>            };
 
-            <label style="display: block; margin: 5px 0; cursor: pointer;">                g = Math.floor(255 * t);
+        // Global variables            return colors[type] || '#808080';
 
-                <input type="radio" name="map-tile" value="Satellite" onchange="changeMapTile(this.value)" style="transform: scale(0.9);">             } else {
+        let map = null;        }
 
-                Satellite View                const t = (normalized - 0.5) * 2;
+        let mapData = null;        
 
-            </label>                r = Math.floor(255 * (1 - t));
+        let markerLayer = null;        function getNodeTypeName(type) {
 
-            <label style="display: block; margin: 5px 0; cursor: pointer;">                g = 255;
+        let linkLayer = null;            const names = {
 
-                <input type="radio" name="map-tile" value="Topographic" onchange="changeMapTile(this.value)" style="transform: scale(0.9);">             }
+        let coverageLayer = null;                0: 'Unknown',
 
-                Topographic Map            
+        let nodeMarkers = {};                1: 'User',
 
-            </label>            return '#' + r.toString(16).padStart(2, '0') + g.toString(16).padStart(2, '0') + '00';
+        let linkLines = {};                2: 'Repeater',
 
-        </div>        }
+        let coverageCircles = {};                3: 'Room Server'
 
-                
+                    };
 
-        <hr style="margin: 10px 0;">        function findNodeByPrefix(prefix) {
+        // Initialize map            return names[type] || 'Unknown';
+
+        function initMap() {        }
+
+            map = L.map('map', {        
+
+                center: [-33.75, 151.1],        function snrToColor(snr) {
+
+                zoom: 10,            const clamped = Math.max(-20, Math.min(5, snr));
+
+                zoomControl: false,            const normalized = (clamped + 20) / 25.0;
+
+                attributionControl: true            
+
+            });            let r, g;
+
+                        if (normalized < 0.5) {
+
+            // Add tile layer                const t = normalized * 2;
+
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {                r = 255;
+
+                attribution: '© OpenStreetMap contributors',                g = Math.floor(255 * t);
+
+                maxZoom: 19            } else {
+
+            }).addTo(map);                const t = (normalized - 0.5) * 2;
+
+                            r = Math.floor(255 * (1 - t));
+
+            // Create feature groups                g = 255;
+
+            markerLayer = L.featureGroup().addTo(map);            }
+
+            linkLayer = L.featureGroup().addTo(map);            
+
+            coverageLayer = L.featureGroup();            return '#' + r.toString(16).padStart(2, '0') + g.toString(16).padStart(2, '0') + '00';
+
+                    }
+
+            console.log('Map initialized');        
+
+        }        function findNodeByPrefix(prefix) {
 
                     if (!window.networkData || !window.networkData.nodes) return null;
 
-        <h4 style="margin: 5px 0;">Search Nodes</h4>            for (const [pubkey, node] of Object.entries(window.networkData.nodes)) {
+        // Load network data            for (const [pubkey, node] of Object.entries(window.networkData.nodes)) {
 
-        <input type="text" id="node-search" placeholder="Search by name..."                 if (pubkey.startsWith(prefix)) {
+        async function loadNetworkData() {                if (pubkey.startsWith(prefix)) {
 
-            style="width: 100%; padding: 5px; font-size: 12px; border: 1px solid #ccc; border-radius: 3px; box-sizing: border-box;">                    return node;
+            try {                    return node;
 
-        <div id="search-results" style="max-height: 200px; overflow-y: auto; margin-top: 5px; font-size: 11px; background: white; border: 1px solid #ddd; border-radius: 3px; display: none;"></div>                }
+                const response = await fetch('network_map_data.json');                }
 
-    </div>            }
+                if (!response.ok) {            }
 
-                return null;
+                    throw new Error(`HTTP error! status: ${response.status}`);            return null;
 
-    <div id="filter-view" style="display: none;">        }
+                }        }
 
-        <h4 style="margin: 0 0 5px 0; color: #4CAF50;">Filtered View</h4>        
+                mapData = await response.json();        
 
-        <p id="filter-details" style="margin: 0; font-size: 11px;"></p>        // Start loading data when page loads
+                console.log('Network data loaded:', mapData);        // Start loading data when page loads
 
-        <button onclick="clearFilter()" style="margin-top: 10px; width: 100%; padding: 6px; background: #f44336; color: white; border: none; border-radius: 3px; cursor: pointer;">Clear Filter</button>        window.addEventListener('load', loadNetworkData);
+                return mapData;        window.addEventListener('load', loadNetworkData);
 
-    </div>    </script>
+            } catch (error) {    </script>
 
-</div></body>
+                console.error('Error loading network data:', error);</body>
 
-</html>
+                document.getElementById('loading-overlay').innerHTML = </html>
 
-<!-- Mobile toggle button -->
-<button id="mobile-toggle" style="
-    display: none;
-    position: fixed;
-    top: 10px;
-    left: 10px;
-    z-index: 10000;
-    background: #2196F3;
-    color: white;
-    border: none;
-    border-radius: 8px;
-    padding: 12px 16px;
-    font-size: 16px;
-    font-weight: bold;
-    cursor: pointer;
-    box-shadow: 0 3px 10px rgba(0,0,0,0.4);
-">
-    <span id="toggle-icon">ℹ️</span> <span id="toggle-text">Info</span>
-</button>
-
-<div id="map"></div>
-
-<!-- Leaflet and dependencies -->
-<script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.3/dist/leaflet.js"></script>
-<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/js/bootstrap.bundle.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Leaflet.awesome-markers/2.0.2/leaflet.awesome-markers.js"></script>
-
-<script>
-// Global variables
-window.map_obj = null;
-window.networkData = null;
-window.allMarkers = {};
-window.allLinks = [];
-window.allRouteLinks = [];
-window.nodeData = {};
-window.linkData = {};
-window.routeNeighborData = {};
-window.coverageCircles = {};
-window.currentFilter = null;
-window.currentTileLayer = null;
-
-// Node type constants
-const NODE_TYPE_UNKNOWN = 0;
-const NODE_TYPE_USER = 1;
-const NODE_TYPE_REPEATER = 2;
-const NODE_TYPE_ROUTER = 4; // Also treated as repeater
-const NODE_TYPE_ROOM_SERVER = 3;
-
-// Load network data
-function loadNetworkData() {
-    fetch('network_map_data.json')
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('Failed to load network data: ' + response.statusText);
-            }
-            return response.json();
-        })
-        .then(data => {
-            console.log('Network data loaded successfully');
-            window.networkData = data;
-            document.getElementById('loading').style.display = 'none';
-            
-            // Process data
-            processNetworkData();
-            
-            // Initialize map
-            initializeMap();
-            
-            // Render everything
-            renderMap();
-            
-            // Initialize features
-            initializeSearch();
-            initializeMobileToggle();
-        })
-        .catch(error => {
-            console.error('Error loading network data:', error);
-            document.getElementById('loading').innerHTML = 
-                '<h2 style="color: #ff6b6b;">⚠️ Error Loading Map Data</h2>' +
-                '<p style="margin-top: 10px;">' + error.message + '</p>' +
-                '<p style="margin-top: 10px; font-size: 14px;">Please ensure network_map_data.json is available.</p>';
-        });
-}
-
-// Process network data into usable structures
-function processNetworkData() {
-    const data = window.networkData;
-    
-    // Build nodeData lookup
-    for (const [pubkey, node] of Object.entries(data.nodes || {})) {
-        nodeData[node.name] = {
-            ...node,
-            pubkey: pubkey
-        };
-    }
-    
-    // Build linkData lookup
-    (data.links || []).forEach((link, index) => {
-        linkData[index] = link;
-    });
-    
-    // Update statistics display
-    updateStatisticsDisplay();
-}
-
-// Update statistics in info panel
-function updateStatisticsDisplay() {
-    const data = window.networkData;
-    const metadata = data.metadata || {};
-    
-    // Basic stats
-    document.getElementById('generated-time').textContent = metadata.generated || 'Unknown';
-    document.getElementById('total-nodes').textContent = Object.keys(data.nodes || {}).length;
-    document.getElementById('nodes-with-gps').textContent = Object.values(data.nodes || {}).filter(n => n.lat && n.lon && !n.estimated).length;
-    document.getElementById('total-links').textContent = (data.links || []).length;
-    
-    // Count by type
-    let userCount = 0, repeaterCount = 0, roomServerCount = 0, unknownCount = 0, estimatedCount = 0;
-    let inactiveRepeaterCount = 0;
-    
-    for (const node of Object.values(data.nodes || {})) {
-        const type = node.type || 0;
-        if (type === NODE_TYPE_USER) userCount++;
-        else if (type === NODE_TYPE_REPEATER || type === NODE_TYPE_ROUTER) repeaterCount++;
-        else if (type === NODE_TYPE_ROOM_SERVER) roomServerCount++;
-        else unknownCount++;
-        
-        if (node.estimated) estimatedCount++;
-    }
-    
-    document.getElementById('user-count').textContent = userCount;
-    document.getElementById('repeater-count').textContent = repeaterCount;
-    document.getElementById('room-server-count').textContent = roomServerCount;
-    document.getElementById('unknown-count').textContent = unknownCount;
-    document.getElementById('estimated-count').textContent = estimatedCount;
-    document.getElementById('inactive-repeater-count').textContent = inactiveRepeaterCount;
-    
-    // Network statistics
-    const nodeStats = data.node_statistics || {};
-    if (nodeStats.highest_airtime) {
-        document.getElementById('highest-airtime').textContent = 
-            `${nodeStats.highest_airtime.name} (${nodeStats.highest_airtime.airtime}%)`;
-    }
-    if (nodeStats.highest_rx_airtime) {
-        document.getElementById('highest-rx-airtime').textContent = 
-            `${nodeStats.highest_rx_airtime.name} (${nodeStats.highest_rx_airtime.rx_airtime}%)`;
-    }
-    if (nodeStats.avg_rx_airtime !== undefined) {
-        document.getElementById('avg-rx-airtime').textContent = nodeStats.avg_rx_airtime.toFixed(1);
-    }
-    if (nodeStats.avg_tx_airtime !== undefined) {
-        document.getElementById('avg-tx-airtime').textContent = nodeStats.avg_tx_airtime.toFixed(1);
-    }
-    if (nodeStats.longest_link) {
-        document.getElementById('longest-link').textContent = 
-            `${nodeStats.longest_link.from} → ${nodeStats.longest_link.to} (${(nodeStats.longest_link.distance/1000).toFixed(1)}km)`;
-    }
-    if (nodeStats.longest_uptime) {
-        document.getElementById('longest-uptime').textContent = 
-            `${nodeStats.longest_uptime.name} (${formatUptime(nodeStats.longest_uptime.uptime)})`;
-    }
-    if (nodeStats.avg_noise_floor !== undefined) {
-        document.getElementById('avg-noise-floor').textContent = nodeStats.avg_noise_floor.toFixed(1) + ' dBm';
-    }
-    if (nodeStats.highest_noise_floor) {
-        document.getElementById('highest-noise-floor').textContent = 
-            `${nodeStats.highest_noise_floor.name} (${nodeStats.highest_noise_floor.noise_floor} dBm)`;
-    }
-    if (nodeStats.lowest_noise_floor) {
-        document.getElementById('lowest-noise-floor').textContent = 
-            `${nodeStats.lowest_noise_floor.name} (${nodeStats.lowest_noise_floor.noise_floor} dBm)`;
-    }
-    
-    // Top owners
-    if (nodeStats.top_owners && nodeStats.top_owners.length > 0) {
-        const ownersHtml = nodeStats.top_owners.slice(0, 5).map(o => 
-            `${o.owner}: ${o.count} nodes`
-        ).join('<br>');
-        document.getElementById('top-owners').innerHTML = ownersHtml;
-    }
-}
-
-// Initialize map
-function initializeMap() {
-    const data = window.networkData;
-    
-    // Calculate center
-    let center_lat = -33.8688, center_lon = 151.2093;
-    if (data.nodes && Object.keys(data.nodes).length > 0) {
-        const lats = [], lons = [];
-        for (const node of Object.values(data.nodes)) {
-            if (node.lat && node.lon) {
-                lats.push(node.lat);
-                lons.push(node.lon);
+                    '<div style="text-align: center;"><h3 style="color: red;">Error Loading Map Data</h3>' +
+                    '<p>Please ensure network_map_data.json is present.</p>' +
+                    '<p style="font-size: 12px; color: #666;">' + error.message + '</p></div>';
+                throw error;
             }
         }
-        if (lats.length > 0) {
-            center_lat = lats.reduce((a, b) => a + b, 0) / lats.length;
-            center_lon = lons.reduce((a, b) => a + b, 0) / lons.length;
+        
+        // Update statistics panel
+        function updateStatistics() {
+            if (!mapData) return;
+            
+            const metadata = mapData.metadata || {};
+            const nodes = mapData.nodes || {};
+            const links = mapData.links || [];
+            
+            document.getElementById('generated-time').textContent = mapData.generated_readable || 'Unknown';
+            document.getElementById('node-count').textContent = Object.keys(nodes).length;
+            document.getElementById('link-count').textContent = links.length;
+            
+            // Count nodes with GPS
+            const gpsCount = Object.values(nodes).filter(n => n.lat && n.lon && n.lat !== 0 && n.lon !== 0).length;
+            document.getElementById('gps-count').textContent = gpsCount;
+            
+            // Count packet transmissions
+            const packetCount = metadata.rf_packet_count || 0;
+            document.getElementById('packet-count').textContent = packetCount;
+            
+            // Count node types
+            const userCount = Object.values(nodes).filter(n => n.type === 1).length;
+            const repeaterCount = Object.values(nodes).filter(n => n.type === 2).length;
+            document.getElementById('user-count').textContent = userCount;
+            document.getElementById('repeater-count').textContent = repeaterCount;
         }
-    }
-    
-    // Create map
-    window.map_obj = L.map('map', {
-        center: [center_lat, center_lon],
-        zoom: 11,
-        zoomControl: false,
-        maxZoom: 18
-    });
-    
-    // Add default tile layer
-    changeMapTile('OpenStreetMap');
-    
-    console.log('Map initialized');
-}
-
-// Change map tile layer
-function changeMapTile(type) {
-    if (window.currentTileLayer) {
-        window.map_obj.removeLayer(window.currentTileLayer);
-    }
-    
-    let tileUrl, attribution;
-    switch(type) {
-        case 'Satellite':
-            tileUrl = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
-            attribution = '&copy; Esri';
-            break;
-        case 'Topographic':
-            tileUrl = 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png';
-            attribution = '&copy; OpenTopoMap';
-            break;
-        default:
-            tileUrl = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
-            attribution = '&copy; OpenStreetMap contributors';
-    }
-    
-    window.currentTileLayer = L.tileLayer(tileUrl, {
-        attribution: attribution,
-        maxZoom: 18
-    }).addTo(window.map_obj);
-}
-
-// Render all map elements
-function renderMap() {
-    renderNodes();
-    renderLinks();
-    renderCoverage();
-}
-
-// Render nodes
-function renderNodes() {
-    const data = window.networkData;
-    
-    for (const [pubkey, node] of Object.entries(data.nodes || {})) {
-        if (!node.lat || !node.lon) continue;
         
-        const color = getNodeColor(node.type);
-        const icon = getNodeIcon(node);
-        
-        const marker = L.marker([node.lat, node.lon], {
-            icon: L.divIcon({
-                html: icon,
-                iconSize: [null, null],
-                iconAnchor: [18, 18],
-                className: 'empty'
-            })
-        }).addTo(window.map_obj);
-        
-        // Add popup
-        marker.bindPopup(createNodePopup(node, pubkey));
-        
-        // Store marker
-        window.allMarkers[node.name] = {
-            marker: marker,
-            node: node
-        };
-    }
-    
-    console.log(`Rendered ${Object.keys(window.allMarkers).length} nodes`);
-}
-
-// Get node color based on type
-function getNodeColor(type) {
-    const colors = {
-        [NODE_TYPE_UNKNOWN]: '#808080',
-        [NODE_TYPE_USER]: '#3388ff',
-        [NODE_TYPE_REPEATER]: '#ff3333',
-        [NODE_TYPE_ROUTER]: '#ff3333',
-        [NODE_TYPE_ROOM_SERVER]: '#33cc33'
-    };
-    return colors[type] || '#808080';
-}
-
-// Get node icon HTML
-function getNodeIcon(node) {
-    const color = getNodeColor(node.type);
-    const border = node.estimated ? '#FFA500' : '#222222';
-    const emoji = getNodeEmoji(node.name);
-    
-    return `
-        <div style="display: flex; align-items: center; white-space: nowrap; cursor: pointer;"
-             onclick="filterNodeLinks('${node.name.replace(/'/g, "\\'")}', ${node.lat}, ${node.lon})">
-            <div style="
-                width: 36px;
-                height: 36px;
-                min-width: 36px;
-                min-height: 36px;
-                border-radius: 50%;
-                background-color: ${color};
-                border: 3px solid ${border};
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                font-size: 14px;
-                font-weight: bold;
-                color: white;
-                text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
-                box-shadow: 0 2px 5px rgba(0,0,0,0.3);
-                flex-shrink: 0;
-            ">
-                ${emoji}
-            </div>
-            <div style="
-                font-size: 11px;
-                font-weight: 600;
-                color: #222222;
-                margin-left: 8px;
-                text-shadow: 
-                    -1px -1px 1px white,
-                    1px -1px 1px white,
-                    -1px 1px 1px white,
-                    1px 1px 1px white;
-            ">
-                ${node.name}
-            </div>
-        </div>
-    `;
-}
-
-// Get emoji from node name
-function getNodeEmoji(name) {
-    // Extract emoji if present
-    const emojiRegex = /[\u{1F300}-\u{1F9FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]/u;
-    const match = name.match(emojiRegex);
-    if (match) return match[0];
-    
-    // Default to first 2 chars
-    return name.substring(0, 2).toUpperCase();
-}
-
-// Create node popup HTML
-function createNodePopup(node, pubkey) {
-    const typeName = getNodeTypeName(node.type);
-    
-    return `
-        <div style="font-family: Arial; min-width: 300px; max-height: 500px; overflow-y: auto;">
-            <h3 style="margin: 0 0 10px 0; color: #333; border-bottom: 2px solid #4CAF50; padding-bottom: 5px;">
-                ${node.name}
-            </h3>
+        // Create marker for node
+        function createNodeMarker(pubkey, node) {
+            const lat = node.lat;
+            const lon = node.lon;
             
-            <div style="margin-bottom: 10px;">
-                <h4 style="margin: 5px 0; color: #666; font-size: 14px;">Basic Information</h4>
-                <table style="width: 100%; font-size: 12px; border-collapse: collapse;">
-                    <tr style="background: #f5f5f5;">
-                        <td style="padding: 4px 8px; font-weight: bold; width: 40%;">Type:</td>
-                        <td style="padding: 4px 8px;">${typeName}</td>
-                    </tr>
-                    ${node.estimated ? `
-                    <tr>
-                        <td style="padding: 4px 8px; font-weight: bold;">Position:</td>
-                        <td style="padding: 4px 8px; color: #ff9800;">Estimated</td>
-                    </tr>
-                    ` : ''}
-                </table>
-            </div>
+            if (!lat || !lon || lat === 0 || lon === 0) return null;
             
-            <div style="margin-bottom: 10px;">
-                <h4 style="margin: 5px 0; color: #666; font-size: 14px;">Location</h4>
-                <table style="width: 100%; font-size: 12px; border-collapse: collapse;">
-                    <tr style="background: #f5f5f5;">
-                        <td style="padding: 4px 8px; font-weight: bold; width: 40%;">Latitude:</td>
-                        <td style="padding: 4px 8px; font-family: monospace;">${node.lat.toFixed(6)}</td>
-                    </tr>
-                    <tr>
-                        <td style="padding: 4px 8px; font-weight: bold;">Longitude:</td>
-                        <td style="padding: 4px 8px; font-family: monospace;">${node.lon.toFixed(6)}</td>
-                    </tr>
-                    ${node.elevation ? `
-                    <tr style="background: #f5f5f5;">
-                        <td style="padding: 4px 8px; font-weight: bold;">Elevation:</td>
-                        <td style="padding: 4px 8px;">${node.elevation}m</td>
-                    </tr>
-                    ` : ''}
-                </table>
-            </div>
+            const name = node.name || 'Unknown';
+            const type = node.type || 1;
+            const estimated = node.estimated || false;
             
-            ${node.status ? `
-            <div style="margin-bottom: 10px;">
-                <h4 style="margin: 5px 0; color: #666; font-size: 14px;">Status</h4>
-                <table style="width: 100%; font-size: 12px; border-collapse: collapse;">
-                    <tr style="background: #f5f5f5;">
-                        <td style="padding: 4px 8px; font-weight: bold; width: 40%;">Battery:</td>
-                        <td style="padding: 4px 8px;">${node.status.bat || 0}mV</td>
-                    </tr>
-                    <tr>
-                        <td style="padding: 4px 8px; font-weight: bold;">Uptime:</td>
-                        <td style="padding: 4px 8px;">${formatUptime(node.status.uptime || 0)}</td>
-                    </tr>
-                    <tr style="background: #f5f5f5;">
-                        <td style="padding: 4px 8px; font-weight: bold;">Airtime:</td>
-                        <td style="padding: 4px 8px;">${((node.status.airtime || 0) / 10).toFixed(1)}%</td>
-                    </tr>
-                    <tr>
-                        <td style="padding: 4px 8px; font-weight: bold;">SNR:</td>
-                        <td style="padding: 4px 8px;">${(node.status.last_snr || 0).toFixed(2)} dB</td>
-                    </tr>
-                    <tr style="background: #f5f5f5;">
-                        <td style="padding: 4px 8px; font-weight: bold;">RSSI:</td>
-                        <td style="padding: 4px 8px;">${node.status.last_rssi || 0} dBm</td>
-                    </tr>
-                    <tr>
-                        <td style="padding: 4px 8px; font-weight: bold;">Noise Floor:</td>
-                        <td style="padding: 4px 8px;">${node.status.noise_floor || 0} dBm</td>
-                    </tr>
-                </table>
-            </div>
-            ` : ''}
+            // Determine color based on type
+            let color = '#3388ff'; // User (blue)
+            if (type === 2) color = '#ff3333'; // Repeater (red)
             
-            <div style="margin-bottom: 10px;">
-                <h4 style="margin: 5px 0; color: #666; font-size: 14px;">Public Key</h4>
-                <div style="background: #f0f0f0; padding: 8px; border-radius: 4px; word-break: break-all; font-family: monospace; font-size: 10px;">
-                    ${pubkey}
+            // Create custom div icon
+            const initials = name.substring(0, 2).toUpperCase();
+            const borderStyle = estimated ? 'dashed' : 'solid';
+            const opacity = estimated ? 0.7 : 1;
+            
+            const iconHtml = `
+                <div style="display: flex; align-items: center; white-space: nowrap; cursor: pointer;"
+                     onclick="showNodePopup('${pubkey}')">
+                    <div style="
+                        width: 36px;
+                        height: 36px;
+                        min-width: 36px;
+                        min-height: 36px;
+                        border-radius: 50%;
+                        background-color: ${color};
+                        border: 3px ${borderStyle} #222222;
+                        opacity: ${opacity};
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        font-size: 14px;
+                        font-weight: bold;
+                        color: white;
+                        text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+                        box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+                        flex-shrink: 0;
+                    ">
+                        ${initials}
+                    </div>
+                    <div style="
+                        font-size: 11px;
+                        font-weight: 600;
+                        color: #222222;
+                        margin-left: 8px;
+                        text-shadow: 
+                            -1px -1px 1px white,
+                            1px -1px 1px white,
+                            -1px 1px 1px white,
+                            1px 1px 1px white;
+                    ">
+                        ${name}${estimated ? ' <i>(est.)</i>' : ''}
+                    </div>
                 </div>
-            </div>
-        </div>
-    `;
-}
-
-// Get node type name
-function getNodeTypeName(type) {
-    const names = {
-        [NODE_TYPE_UNKNOWN]: 'Unknown',
-        [NODE_TYPE_USER]: 'User',
-        [NODE_TYPE_REPEATER]: 'Repeater',
-        [NODE_TYPE_ROUTER]: 'Router',
-        [NODE_TYPE_ROOM_SERVER]: 'Room Server'
-    };
-    return names[type] || 'Unknown';
-}
-
-// Format uptime
-function formatUptime(seconds) {
-    const days = Math.floor(seconds / 86400);
-    const hours = Math.floor((seconds % 86400) / 3600);
-    const mins = Math.floor((seconds % 3600) / 60);
-    
-    if (days > 0) return `${days}d ${hours}h`;
-    if (hours > 0) return `${hours}h ${mins}m`;
-    return `${mins}m`;
-}
-
-// Render links
-function renderLinks() {
-    const data = window.networkData;
-    
-    for (const link of (data.links || [])) {
-        const fromNode = findNodeByPrefix(link.from_prefix);
-        const toNode = data.nodes[link.to_pubkey];
-        
-        if (!fromNode || !toNode || !fromNode.lat || !toNode.lat) continue;
-        
-        const color = snrToColor(link.snr || 0);
-        const weight = Math.max(2, Math.min(6, (link.snr || 0) / 5 + 3));
-        
-        const polyline = L.polyline([
-            [fromNode.lat, fromNode.lon],
-            [toNode.lat, toNode.lon]
-        ], {
-            color: color,
-            weight: weight,
-            opacity: 0.6,
-            className: 'rf-link'
-        }).addTo(window.map_obj);
-        
-        polyline.bindPopup(`
-            <b>RF Link</b><br>
-            From: ${fromNode.name}<br>
-            To: ${toNode.name}<br>
-            SNR: ${(link.snr || 0).toFixed(2)} dB<br>
-            Distance: ${(haversineDistance(fromNode.lat, fromNode.lon, toNode.lat, toNode.lon) / 1000).toFixed(2)} km
-        `);
-        
-        window.allLinks.push({
-            line: polyline,
-            from: fromNode.name,
-            to: toNode.name,
-            snr: link.snr
-        });
-    }
-    
-    console.log(`Rendered ${window.allLinks.length} RF links`);
-}
-
-// Convert SNR to color
-function snrToColor(snr) {
-    const clamped = Math.max(-20, Math.min(5, snr));
-    const normalized = (clamped + 20) / 25.0;
-    
-    let r, g;
-    if (normalized < 0.5) {
-        const t = normalized * 2;
-        r = 255;
-        g = Math.floor(255 * t);
-    } else {
-        const t = (normalized - 0.5) * 2;
-        r = Math.floor(255 * (1 - t));
-        g = 255;
-    }
-    
-    return '#' + r.toString(16).padStart(2, '0') + g.toString(16).padStart(2, '0') + '00';
-}
-
-// Haversine distance calculation
-function haversineDistance(lat1, lon1, lat2, lon2) {
-    const R = 6371000; // meters
-    const dLat = (lat2 - lat1) * Math.PI / 180;
-    const dLon = (lon2 - lon1) * Math.PI / 180;
-    const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-            Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-            Math.sin(dLon/2) * Math.sin(dLon/2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-    return R * c;
-}
-
-// Find node by pubkey prefix
-function findNodeByPrefix(prefix) {
-    for (const [pubkey, node] of Object.entries(window.networkData.nodes || {})) {
-        if (pubkey.startsWith(prefix)) {
-            return node;
-        }
-    }
-    return null;
-}
-
-// Render coverage
-function renderCoverage() {
-    const data = window.networkData;
-    const coverage = data.coverage || {};
-    
-    for (const [pubkey, coverageData] of Object.entries(coverage)) {
-        if (!coverageData.heatmap_points || coverageData.heatmap_points.length === 0) continue;
-        
-        const node = data.nodes[pubkey];
-        if (!node) continue;
-        
-        // Create circle for simple coverage visualization
-        const circle = L.circle([node.lat, node.lon], {
-            color: '#ff3333',
-            fillColor: '#ff3333',
-            fillOpacity: 0.1,
-            radius: coverageData.radius || 5000,
-            weight: 1
-        });
-        
-        window.coverageCircles[node.name] = circle;
-    }
-    
-    console.log(`Loaded coverage for ${Object.keys(window.coverageCircles).length} repeaters`);
-}
-
-// Toggle node type visibility
-function toggleNodeType(type, checked) {
-    for (const [name, markerData] of Object.entries(window.allMarkers)) {
-        const node = markerData.node;
-        let shouldShow = checked;
-        
-        if (type === 'users' && node.type === NODE_TYPE_USER) {
-            // Toggle users
-        } else if (type === 'repeaters' && (node.type === NODE_TYPE_REPEATER || node.type === NODE_TYPE_ROUTER)) {
-            // Toggle repeaters
-        } else if (type === 'roomservers' && node.type === NODE_TYPE_ROOM_SERVER) {
-            // Toggle room servers
-        } else if (type === 'unknown' && node.type === NODE_TYPE_UNKNOWN) {
-            // Toggle unknown
-        } else {
-            continue; // Not this type
+            `;
+            
+            const marker = L.marker([lat, lon], {
+                icon: L.divIcon({
+                    html: iconHtml,
+                    iconSize: [null, null],
+                    iconAnchor: [18, 18],
+                    className: 'empty'
+                })
+            });
+            
+            // Create popup content
+            const popupContent = createNodePopupContent(pubkey, node);
+            marker.bindPopup(popupContent, { maxWidth: 400 });
+            
+            // Add tooltip
+            marker.bindTooltip(name + (estimated ? ' (estimated)' : ''), { sticky: true });
+            
+            return marker;
         }
         
-        if (shouldShow) {
-            window.map_obj.addLayer(markerData.marker);
-        } else {
-            window.map_obj.removeLayer(markerData.marker);
-        }
-    }
-}
-
-// Toggle links
-function toggleLinks(type, checked) {
-    const links = (type === 'rf') ? window.allLinks : window.allRouteLinks;
-    
-    for (const link of links) {
-        if (checked) {
-            window.map_obj.addLayer(link.line);
-        } else {
-            window.map_obj.removeLayer(link.line);
-        }
-    }
-}
-
-// Toggle inactive repeaters filter
-function toggleInactiveRepeaters(checked) {
-    if (checked) {
-        currentFilter = 'inactive-repeaters';
-        // Implementation would filter based on last_seen time
-    } else {
-        clearFilter();
-    }
-}
-
-// Toggle estimated nodes filter
-function toggleEstimatedNodes(checked) {
-    if (checked) {
-        currentFilter = 'estimated-nodes';
-        for (const [name, markerData] of Object.entries(window.allMarkers)) {
-            if (!markerData.node.estimated) {
-                window.map_obj.removeLayer(markerData.marker);
-            }
-        }
-    } else {
-        clearFilter();
-    }
-}
-
-// Clear filter
-function clearFilter() {
-    currentFilter = null;
-    document.getElementById('filter-view').style.display = 'none';
-    document.getElementById('stats-view').style.display = 'block';
-    
-    // Show all markers again
-    for (const markerData of Object.values(window.allMarkers)) {
-        window.map_obj.addLayer(markerData.marker);
-    }
-}
-
-// Filter node links (when clicking a node)
-function filterNodeLinks(nodeName, lat, lon) {
-    console.log('Filtering links for node:', nodeName);
-    currentFilter = 'node-links';
-    
-    document.getElementById('stats-view').style.display = 'none';
-    document.getElementById('filter-view').style.display = 'block';
-    document.getElementById('filter-details').innerHTML = 
-        `<b>Showing links for:</b><br>${nodeName}<br><br>` +
-        `<button onclick="window.map_obj.setView([${lat}, ${lon}], 13)" ` +
-        `style="padding: 4px 8px; background: #2196F3; color: white; border: none; border-radius: 3px; cursor: pointer; margin-top: 5px;">` +
-        `Center on Node</button>`;
-    
-    // Hide all markers except this node and its connections
-    const connections = new Set();
-    connections.add(nodeName);
-    
-    // Find connected nodes
-    for (const link of window.allLinks) {
-        if (link.from === nodeName) connections.add(link.to);
-        if (link.to === nodeName) connections.add(link.from);
-    }
-    
-    // Show/hide markers
-    for (const [name, markerData] of Object.entries(window.allMarkers)) {
-        if (connections.has(name)) {
-            window.map_obj.addLayer(markerData.marker);
-        } else {
-            window.map_obj.removeLayer(markerData.marker);
-        }
-    }
-    
-    // Show/hide links
-    for (const link of window.allLinks) {
-        if (connections.has(link.from) && connections.has(link.to)) {
-            window.map_obj.addLayer(link.line);
-        } else {
-            window.map_obj.removeLayer(link.line);
-        }
-    }
-}
-
-// Initialize search
-function initializeSearch() {
-    const searchInput = document.getElementById('node-search');
-    const searchResults = document.getElementById('search-results');
-    
-    searchInput.addEventListener('input', function() {
-        const query = this.value.toLowerCase().trim();
-        
-        if (query.length < 2) {
-            searchResults.style.display = 'none';
-            return;
+        // Create popup content for node
+        function createNodePopupContent(pubkey, node) {
+            const name = node.name || 'Unknown';
+            const type = node.type === 2 ? 'Repeater' : 'User';
+            const lat = node.lat || 0;
+            const lon = node.lon || 0;
+            
+            let html = `
+                <div style="font-family: Arial; min-width: 350px; max-height: 600px; overflow-y: auto;">
+                    <h3 style="margin: 0 0 15px 0; color: #333; border-bottom: 2px solid #4CAF50; padding-bottom: 5px;">
+                        ${name}
+                    </h3>
+                    
+                    <div style="margin-bottom: 15px;">
+                        <h4 style="margin: 5px 0; color: #666; font-size: 14px;">Basic Information</h4>
+                        <table style="width: 100%; font-size: 12px; border-collapse: collapse;">
+                            <tr style="background: #f5f5f5;">
+                                <td style="padding: 4px 8px; font-weight: bold; width: 40%;">Type:</td>
+                                <td style="padding: 4px 8px;">${type}</td>
+                            </tr>
+                        </table>
+                    </div>
+                    
+                    <div style="margin-bottom: 15px;">
+                        <h4 style="margin: 5px 0; color: #666; font-size: 14px;">Location</h4>
+                        <table style="width: 100%; font-size: 12px; border-collapse: collapse;">
+                            <tr style="background: #f5f5f5;">
+                                <td style="padding: 4px 8px; font-weight: bold; width: 40%;">Latitude:</td>
+                                <td style="padding: 4px 8px; font-family: monospace;">${lat.toFixed(6)}</td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 4px 8px; font-weight: bold;">Longitude:</td>
+                                <td style="padding: 4px 8px; font-family: monospace;">${lon.toFixed(6)}</td>
+                            </tr>
+                        </table>
+                    </div>
+                    
+                    <div style="margin-bottom: 10px;">
+                        <h4 style="margin: 5px 0; color: #666; font-size: 14px;">Public Key</h4>
+                        <div style="background: #f0f0f0; padding: 8px; border-radius: 4px; word-break: break-all; font-family: monospace; font-size: 10px;">
+                            ${pubkey}
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            return html;
         }
         
-        const matches = [];
-        for (const [name, markerData] of Object.entries(window.allMarkers)) {
-            if (name.toLowerCase().includes(query)) {
-                matches.push({name, node: markerData.node});
+        // Create link line between two nodes
+        function createLinkLine(link) {
+            const fromPubkey = link.from_pubkey;
+            const toPubkey = link.to_pubkey;
+            
+            const fromNode = mapData.nodes[fromPubkey];
+            const toNode = mapData.nodes[toPubkey];
+            
+            if (!fromNode || !toNode) return null;
+            if (!fromNode.lat || !fromNode.lon || !toNode.lat || !toNode.lon) return null;
+            
+            const snr = link.snr || 0;
+            
+            // Color based on SNR quality
+            let color = '#00ff00'; // Good (green)
+            if (snr < -10) color = '#ff0000'; // Bad (red)
+            else if (snr < 0) color = '#ffaa00'; // Moderate (orange)
+            
+            const line = L.polyline([
+                [fromNode.lat, fromNode.lon],
+                [toNode.lat, toNode.lon]
+            ], {
+                color: color,
+                weight: 2,
+                opacity: 0.6
+            });
+            
+            // Add popup with link info
+            const popupContent = `
+                <div style="font-size: 12px;">
+                    <b>Link:</b> ${fromNode.name} → ${toNode.name}<br>
+                    <b>SNR:</b> ${snr.toFixed(2)} dB<br>
+                    <b>Distance:</b> ${calculateDistance(fromNode.lat, fromNode.lon, toNode.lat, toNode.lon).toFixed(2)} km
+                </div>
+            `;
+            line.bindPopup(popupContent);
+            
+            return line;
+        }
+        
+        // Calculate distance between two points (Haversine formula)
+        function calculateDistance(lat1, lon1, lat2, lon2) {
+            const R = 6371; // Earth's radius in km
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLon = (lon2 - lon1) * Math.PI / 180;
+            const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                      Math.sin(dLon/2) * Math.sin(dLon/2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            return R * c;
+        }
+        
+        // Render all nodes on map
+        function renderNodes() {
+            if (!mapData || !mapData.nodes) return;
+            
+            markerLayer.clearLayers();
+            nodeMarkers = {};
+            
+            Object.keys(mapData.nodes).forEach(pubkey => {
+                const node = mapData.nodes[pubkey];
+                const marker = createNodeMarker(pubkey, node);
+                if (marker) {
+                    marker.addTo(markerLayer);
+                    nodeMarkers[pubkey] = marker;
+                }
+            });
+            
+            console.log(`Rendered ${Object.keys(nodeMarkers).length} node markers`);
+        }
+        
+        // Render all links on map
+        function renderLinks() {
+            if (!mapData || !mapData.links) return;
+            
+            linkLayer.clearLayers();
+            linkLines = {};
+            
+            mapData.links.forEach((link, index) => {
+                const line = createLinkLine(link);
+                if (line) {
+                    line.addTo(linkLayer);
+                    linkLines[index] = line;
+                }
+            });
+            
+            console.log(`Rendered ${Object.keys(linkLines).length} link lines`);
+        }
+        
+        // Render coverage zones
+        function renderCoverage() {
+            if (!mapData || !mapData.coverage) return;
+            
+            coverageLayer.clearLayers();
+            coverageCircles = {};
+            
+            // Coverage data is per-repeater
+            Object.keys(mapData.coverage).forEach(pubkey => {
+                const node = mapData.nodes[pubkey];
+                if (!node || !node.lat || !node.lon) return;
+                
+                // Simple coverage circle (you can enhance this with actual coverage data)
+                const circle = L.circle([node.lat, node.lon], {
+                    color: '#ff3333',
+                    fillColor: '#ff3333',
+                    fillOpacity: 0.1,
+                    radius: 20000 // 20km radius
+                });
+                
+                circle.addTo(coverageLayer);
+                coverageCircles[pubkey] = circle;
+            });
+            
+            console.log(`Rendered ${Object.keys(coverageCircles).length} coverage zones`);
+        }
+        
+        // Toggle functions for filters
+        function toggleNodeType(type, show) {
+            // Filter implementation
+            console.log(`Toggle ${type}: ${show}`);
+        }
+        
+        function toggleInactiveRepeaters(hide) {
+            console.log(`Toggle inactive repeaters: ${hide}`);
+        }
+        
+        function toggleLinks(show) {
+            if (show) {
+                linkLayer.addTo(map);
+            } else {
+                map.removeLayer(linkLayer);
             }
         }
         
-        if (matches.length === 0) {
-            searchResults.innerHTML = '<div style="padding: 8px; color: #666;">No results found</div>';
-            searchResults.style.display = 'block';
-            return;
+        function toggleCoverage(show) {
+            if (show) {
+                coverageLayer.addTo(map);
+            } else {
+                map.removeLayer(coverageLayer);
+            }
         }
         
-        const html = matches.slice(0, 10).map(m => 
-            `<div style="padding: 6px 8px; cursor: pointer; border-bottom: 1px solid #eee;" 
-                  onclick="selectSearchResult('${m.name.replace(/'/g, "\\'")}', ${m.node.lat}, ${m.node.lon})"
-                  onmouseover="this.style.background='#f0f0f0'" 
-                  onmouseout="this.style.background='white'">
-                ${m.name}
-            </div>`
-        ).join('');
+        function resetFilters() {
+            document.getElementById('show-users').checked = true;
+            document.getElementById('show-repeaters').checked = true;
+            document.getElementById('filter-inactive-repeaters').checked = false;
+            document.getElementById('show-links').checked = true;
+            document.getElementById('show-coverage').checked = false;
+            
+            toggleLinks(true);
+            toggleCoverage(false);
+        }
         
-        searchResults.innerHTML = html;
-        searchResults.style.display = 'block';
-    });
-}
-
-// Select search result
-function selectSearchResult(name, lat, lon) {
-    document.getElementById('search-results').style.display = 'none';
-    document.getElementById('node-search').value = '';
-    window.map_obj.setView([lat, lon], 15);
-    
-    // Open popup for this node
-    const markerData = window.allMarkers[name];
-    if (markerData) {
-        markerData.marker.openPopup();
-    }
-}
-
-// Initialize mobile toggle
-function initializeMobileToggle() {
-    const toggleBtn = document.getElementById('mobile-toggle');
-    const panel = document.getElementById('info-panel');
-    
-    toggleBtn.addEventListener('click', function() {
-        if (panel.style.display === 'none' || panel.style.display === '') {
-            panel.style.display = 'block';
-            document.getElementById('toggle-icon').textContent = '✖';
-            document.getElementById('toggle-text').textContent = 'Close';
-        } else {
-            panel.style.display = 'none';
-            document.getElementById('toggle-icon').textContent = 'ℹ️';
-            document.getElementById('toggle-text').textContent = 'Info';
+        function showNodePopup(pubkey) {
+            const marker = nodeMarkers[pubkey];
+            if (marker) {
+                marker.openPopup();
+            }
         }
-    });
-    
-    // Check if mobile
-    function checkMobile() {
-        if (window.innerWidth <= 768) {
-            toggleBtn.style.display = 'block';
-            panel.style.display = 'none';
-        } else {
-            toggleBtn.style.display = 'none';
-            panel.style.display = 'block';
+        
+        // Main initialization
+        async function init() {
+            try {
+                initMap();
+                await loadNetworkData();
+                updateStatistics();
+                renderNodes();
+                renderLinks();
+                renderCoverage();
+                
+                // Hide loading overlay
+                document.getElementById('loading-overlay').style.display = 'none';
+                
+                // Fit map to markers
+                if (Object.keys(nodeMarkers).length > 0) {
+                    map.fitBounds(markerLayer.getBounds(), { padding: [50, 50] });
+                }
+                
+                console.log('Map initialization complete');
+            } catch (error) {
+                console.error('Initialization error:', error);
+            }
         }
-    }
-    
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-}
-
-// Start loading when page loads
-window.addEventListener('load', loadNetworkData);
-</script>
-
+        
+        // Start when DOM is ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', init);
+        } else {
+            init();
+        }
+    </script>
 </body>
 </html>
