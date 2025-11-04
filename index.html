@@ -1317,6 +1317,7 @@
                             console.log('Calling calculateStatistics...');
                             calculateStatistics();
                             console.log('Statistics updated from network data');
+                            console.log('Node types:', document.getElementById('user-count') ? document.getElementById('user-count').textContent : 'N/A');
                         } else {
                             console.log('DOM not ready yet, retrying statistics in 100ms...');
                             setTimeout(updateStats, 100);
@@ -1441,8 +1442,11 @@
                 var iconText = nodeName.substring(0, 1);
                 var nodePrefix = nodeName.substring(0, 2);
                 
-                // Create marker HTML matching generate_visual_map.py (NO onclick - handle via Leaflet event)
-                var markerHtml = '<div style="display: flex; align-items: center; white-space: nowrap; cursor: pointer;">' +
+                // Create marker HTML matching generate_visual_map.py with onclick directly in HTML
+                // Need to escape quotes in node name for onclick
+                var jsEscapedName = nodeName.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+                var markerHtml = '<div style="display: flex; align-items: center; white-space: nowrap; cursor: pointer;" ' +
+                    'onclick="filterNodeLinks(\'' + jsEscapedName + '\', ' + node.lat + ', ' + node.lon + ')">' +
                     '<div style="' +
                     'width: 32px;' +
                     'height: 32px;' +
@@ -1478,35 +1482,560 @@
                     '</div>' +
                     '</div>';
                 
-                // Create popup content with more node information
-                var popupContent = '<div style="min-width: 250px; color: #e0e0e0;">' +
-                    '<h3 style="margin: 0 0 10px 0; color: #fff; border-bottom: 1px solid #666; padding-bottom: 5px;">' + nodeName + '</h3>' +
-                    '<table style="width: 100%; font-size: 12px;">' +
-                    '<tr><td style="padding: 2px 10px 2px 0;"><b>Type:</b></td><td>' + 
-                    (node.type === 1 ? 'User' : node.type === 2 ? 'Repeater' : node.type === 3 ? 'Room Server' : 'Unknown') + '</td></tr>' +
-                    '<tr><td style="padding: 2px 10px 2px 0;"><b>Lat:</b></td><td>' + node.lat.toFixed(6) + '</td></tr>' +
-                    '<tr><td style="padding: 2px 10px 2px 0;"><b>Lon:</b></td><td>' + node.lon.toFixed(6) + '</td></tr>';
+                // Helper function to format time ago
+                function formatTimeAgo(seconds) {
+                    if (!seconds) return 'N/A';
+                    var now = Date.now() / 1000;
+                    var ago = now - seconds;
+                    if (ago < 60) return Math.floor(ago) + ' seconds ago';
+                    if (ago < 3600) return Math.floor(ago / 60) + ' minutes ago';
+                    if (ago < 86400) return Math.floor(ago / 3600) + ' hours ago';
+                    return Math.floor(ago / 86400) + ' days ago';
+                }
+                
+                // Helper function to format age
+                function formatAge(firstSeen) {
+                    if (!firstSeen) return 'N/A';
+                    var now = Date.now() / 1000;
+                    var age = now - firstSeen;
+                    var days = Math.floor(age / 86400);
+                    var hours = Math.floor((age % 86400) / 3600);
+                    if (days > 0) return days + ' days, ' + hours + ' hours';
+                    if (hours > 0) return hours + ' hours';
+                    return Math.floor(age / 60) + ' minutes';
+                }
+                
+                // Create popup content matching generate_visual_map.py format
+                var typeNames = {1: 'User', 2: 'Repeater', 3: 'Room Server', 4: 'Sensor'};
+                var typeName = typeNames[node.type] || 'Unknown';
+                
+                var popupContent = '<div style="font-family: Arial; min-width: 350px; max-height: 600px; overflow-y: auto; background-color: #1e1e1e; color: #e0e0e0;">' +
+                    '<h3 style="margin: 0 0 15px 0; color: #e0e0e0; border-bottom: 2px solid #4CAF50; padding-bottom: 5px;">' + nodeName + '</h3>';
+                
+                // Connected device indicator
+                if (node.is_connected_device) {
+                    popupContent += '<div style="background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%); padding: 12px; border-radius: 8px; margin-bottom: 15px; text-align: center; box-shadow: 0 2px 5px rgba(0,0,0,0.2);">' +
+                        '<div style="font-size: 24px; margin-bottom: 5px;">📡</div>' +
+                        '<div style="font-weight: bold; color: #000; font-size: 14px; margin-bottom: 3px;">CONNECTED DEVICE</div>' +
+                        '<div style="font-size: 11px; color: #333;">This is the data collection node for the network map</div>' +
+                        '</div>';
+                }
+                
+                // Basic Information Section
+                popupContent += '<div style="margin-bottom: 15px;">' +
+                    '<h4 style="margin: 5px 0; color: #b0b0b0; font-size: 14px;">Basic Information</h4>' +
+                    '<table style="width: 100%; font-size: 12px; border-collapse: collapse;">' +
+                    '<tr style="background: #2a2a2a;"><td style="padding: 4px 8px; font-weight: bold; width: 40%;">Type:</td><td style="padding: 4px 8px;">' + typeName + '</td></tr>' +
+                    '<tr style="background: #1e1e1e;"><td style="padding: 4px 8px; font-weight: bold;">Node Prefix:</td><td style="padding: 4px 8px; font-family: monospace; font-weight: bold; color: #4CAF50;">' + nodePrefix + '</td></tr>' +
+                    '<tr style="background: #2a2a2a;"><td style="padding: 4px 8px; font-weight: bold;">Discovery:</td><td style="padding: 4px 8px;">' + (node.discovery_source || 'unknown') + '</td></tr>';
+                
+                // Time information with "ago" format
+                if (node.first_seen) {
+                    var firstSeenDate = new Date(node.first_seen * 1000);
+                    popupContent += '<tr style="background: #2a2a2a;"><td style="padding: 4px 8px; font-weight: bold;">First Seen:</td><td style="padding: 4px 8px; font-size: 11px;">' + 
+                        firstSeenDate.toLocaleString() + '<br><span style="color: #888; font-size: 10px;">(' + formatTimeAgo(node.first_seen) + ')</span></td></tr>';
+                }
+                if (node.last_seen) {
+                    var lastSeenDate = new Date(node.last_seen * 1000);
+                    popupContent += '<tr style="background: #1e1e1e;"><td style="padding: 4px 8px; font-weight: bold;">Last Seen:</td><td style="padding: 4px 8px; font-size: 11px;">' + 
+                        lastSeenDate.toLocaleString() + '<br><span style="color: #888; font-size: 10px;">(' + formatTimeAgo(node.last_seen) + ')</span></td></tr>';
+                }
+                if (node.last_activity) {
+                    var lastActivityDate = new Date(node.last_activity * 1000);
+                    popupContent += '<tr style="background: #2a2a2a;"><td style="padding: 4px 8px; font-weight: bold;">Last Activity:</td><td style="padding: 4px 8px; font-size: 11px;">' + 
+                        lastActivityDate.toLocaleString() + '<br><span style="color: #888; font-size: 10px;">(' + formatTimeAgo(node.last_activity) + ')</span></td></tr>';
+                }
+                
+                // Age
+                if (node.first_seen) {
+                    popupContent += '<tr style="background: #1e1e1e;"><td style="padding: 4px 8px; font-weight: bold;">Age:</td><td style="padding: 4px 8px;">' + formatAge(node.first_seen) + '</td></tr>';
+                }
+                
+                // Failed login attempts
+                if (node.failed_login_attempts && node.failed_login_attempts > 0) {
+                    var failColor = node.failed_login_attempts < 3 ? 'orange' : 'red';
+                    popupContent += '<tr style="background: #2a2a2a;"><td style="padding: 4px 8px; font-weight: bold;">Failed Login Attempts:</td><td style="padding: 4px 8px;"><span style="color: ' + failColor + '; font-weight: bold;">' + node.failed_login_attempts + '</span></td></tr>';
+                }
+                
+                popupContent += '</table></div>';
+                
+                // Network Information Section
+                var pathLen = node.path_len !== undefined ? node.path_len : -1;
+                var pathHops = pathLen >= 0 ? pathLen + ' hops' : 'flood';
+                
+                // Path display with last_advert_path support
+                var pathDisplay = 'N/A';
+                if (node.last_advert_path && node.last_advert_path.length > 2) {
+                    // Show intermediate hops only (exclude sender at [0] and us at [-1])
+                    var advertHops = node.last_advert_path.slice(1, -1).join(' → ');
+                    pathDisplay = advertHops || 'direct';
+                } else if (pathLen === 0) {
+                    pathDisplay = 'direct';
+                } else if (node.path) {
+                    pathDisplay = node.path;
+                }
+                
+                popupContent += '<div style="margin-bottom: 15px;">' +
+                    '<h4 style="margin: 5px 0; color: #b0b0b0; font-size: 14px;">Network Information</h4>' +
+                    '<table style="width: 100%; font-size: 12px; border-collapse: collapse;">' +
+                    '<tr style="background: #2a2a2a;"><td style="padding: 4px 8px; font-weight: bold; width: 40%;">Path Length:</td><td style="padding: 4px 8px;">' + pathHops + '</td></tr>' +
+                    '<tr style="background: #1e1e1e;"><td style="padding: 4px 8px; font-weight: bold;">Path:</td><td style="padding: 4px 8px; font-family: monospace; font-size: 10px;">' + pathDisplay + '</td></tr>';
+                
+                if (node.last_advert) {
+                    var lastAdvertDate = new Date(node.last_advert * 1000);
+                    popupContent += '<tr style="background: #2a2a2a;"><td style="padding: 4px 8px; font-weight: bold;">Last Advert:</td><td style="padding: 4px 8px; font-size: 11px;">' + 
+                        lastAdvertDate.toLocaleString() + '<br><span style="color: #888; font-size: 10px;">(' + formatTimeAgo(node.last_advert) + ')</span></td></tr>';
+                }
+                
+                popupContent += '</table></div>';
+                
+                // Location Section
+                popupContent += '<div style="margin-bottom: 15px;">' +
+                    '<h4 style="margin: 5px 0; color: #b0b0b0; font-size: 14px;">Location</h4>' +
+                    '<table style="width: 100%; font-size: 12px; border-collapse: collapse;">' +
+                    '<tr style="background: #2a2a2a;"><td style="padding: 4px 8px; font-weight: bold; width: 40%;">Latitude:</td><td style="padding: 4px 8px; font-family: monospace;">' + node.lat.toFixed(6) + '</td></tr>' +
+                    '<tr style="background: #1e1e1e;"><td style="padding: 4px 8px; font-weight: bold;">Longitude:</td><td style="padding: 4px 8px; font-family: monospace;">' + node.lon.toFixed(6) + '</td></tr>';
                 
                 if (node.elevation) {
-                    popupContent += '<tr><td style="padding: 2px 10px 2px 0;"><b>Elevation:</b></td><td>' + node.elevation.toFixed(0) + ' m</td></tr>';
+                    popupContent += '<tr style="background: #2a2a2a;"><td style="padding: 4px 8px; font-weight: bold;">Ground Elevation:</td><td style="padding: 4px 8px;">' + 
+                        node.elevation.toFixed(1) + 'm <span style="color: #888; font-size: 10px;">(at node position)</span></td></tr>';
                 }
                 
-                if (node.antenna_height_agl) {
-                    popupContent += '<tr><td style="padding: 2px 10px 2px 0;"><b>Antenna:</b></td><td>' + node.antenna_height_agl.toFixed(0) + ' m AGL</td></tr>';
+                if (node.antenna_height_agl && node.type === 2) {
+                    popupContent += '<tr style="background: #1e1e1e;"><td style="padding: 4px 8px; font-weight: bold;">Antenna Height AGL:</td><td style="padding: 4px 8px;">' + 
+                        node.antenna_height_agl.toFixed(1) + 'm <span style="color: #888; font-size: 10px;">(above ground level)</span></td></tr>';
                 }
                 
-                if (node.status) {
-                    if (node.status.snr !== undefined) {
-                        popupContent += '<tr><td style="padding: 2px 10px 2px 0;"><b>SNR:</b></td><td>' + node.status.snr + ' dB</td></tr>';
+                // Position status with reference count
+                if (node.estimated) {
+                    var refCount = node.reference_count || 0;
+                    if (refCount === 1) {
+                        popupContent += '<tr style="background: #FFF3E0;"><td colspan="2" style="padding: 8px; color: #FF6600; font-weight: bold; text-align: center;">' +
+                            '⚠️ Position is a GUESS<br><span style="font-size: 11px; font-weight: normal;">Based on only 1 link - highly uncertain</span></td></tr>';
+                    } else {
+                        popupContent += '<tr style="background: #E3F2FD;"><td colspan="2" style="padding: 8px; color: #1976D2; font-weight: bold; text-align: center;">' +
+                            '📍 Estimated Position<br><span style="font-size: 11px; font-weight: normal;">Based on ' + refCount + ' links</span></td></tr>';
                     }
-                    if (node.status.rssi !== undefined) {
-                        popupContent += '<tr><td style="padding: 2px 10px 2px 0;"><b>RSSI:</b></td><td>' + node.status.rssi + ' dBm</td></tr>';
+                } else {
+                    popupContent += '<tr style="background: #E8F5E9;"><td colspan="2" style="padding: 8px; color: #2E7D32; font-weight: bold; text-align: center;">✓ GPS Coordinates</td></tr>';
+                }
+                
+                popupContent += '</table></div>';
+                
+                // Public Key Section
+                popupContent += '<div style="margin-bottom: 10px;">' +
+                    '<h4 style="margin: 5px 0; color: #b0b0b0; font-size: 14px;">Public Key</h4>' +
+                    '<div style="background: #2a2a2a; padding: 8px; border-radius: 4px; word-break: break-all; font-family: monospace; font-size: 10px;">' + 
+                    nodePubkey + '</div></div>';
+                
+                // Status Information Section (if status data exists)
+                if (node.status && Object.keys(node.status).length > 0) {
+                    var status = node.status;
+                    var rowNum = 0;
+                    
+                    popupContent += '<div style="margin-bottom: 10px; border-top: 2px solid #2196F3; padding-top: 10px;">' +
+                        '<h4 style="margin: 5px 0; color: #64B5F6; font-size: 14px;">Status Information</h4>' +
+                        '<table style="width: 100%; font-size: 12px; border-collapse: collapse;">';
+                    
+                    // Helper to add a row
+                    function addStatusRow(label, value) {
+                        var bg = rowNum % 2 === 0 ? '#2a2a2a' : '#1e1e1e';
+                        popupContent += '<tr style="background: ' + bg + ';"><td style="padding: 4px 8px; font-weight: bold; width: 40%;">' + label + ':</td><td style="padding: 4px 8px;">' + value + '</td></tr>';
+                        rowNum++;
+                    }
+                    
+                    // Login/Status timing info
+                    if (node.login_timestamp) {
+                        var loginDate = new Date(node.login_timestamp * 1000);
+                        addStatusRow('Login Confirmed', loginDate.toLocaleString() + '<br><span style="color: #888; font-size: 10px;">(' + formatTimeAgo(node.login_timestamp) + ')</span>');
+                    }
+                    if (node.is_admin !== undefined) {
+                        addStatusRow('Admin Access', node.is_admin ? '<span style="color: green; font-weight: bold;">Yes</span>' : '<span style="color: #888;">No</span>');
+                    }
+                    if (node.status_timestamp) {
+                        var statusDate = new Date(node.status_timestamp * 1000);
+                        addStatusRow('Status Received', statusDate.toLocaleString() + '<br><span style="color: #888; font-size: 10px;">(' + formatTimeAgo(node.status_timestamp) + ')</span>');
+                    }
+                    if (node.estimated_boot_time) {
+                        var bootDate = new Date(node.estimated_boot_time * 1000);
+                        addStatusRow('Estimated Boot Time', bootDate.toLocaleString() + '<br><span style="color: #888; font-size: 10px;">(' + formatTimeAgo(node.estimated_boot_time) + ')</span>');
+                    }
+                    
+                    // Status fields
+                    var statusFields = [
+                        ['bat', 'Battery (mV)'], ['voltage', 'Voltage (mV)'], ['current', 'Current (mA)'],
+                        ['power', 'Power (mW)'], ['uptime', 'Uptime (s)'], ['airtime', 'Total Airtime (s)'],
+                        ['rx_airtime', 'RX Airtime (s)'], ['tx_queue_len', 'TX Queue Length'],
+                        ['noise_floor', 'Noise Floor (dBm)'], ['temperature', 'Temperature (°C)'],
+                        ['humidity', 'Humidity (%)'], ['pressure', 'Pressure (hPa)'],
+                        ['nb_recv', 'Total Packets RX'], ['recv_flood', '  ↳ Flood RX'],
+                        ['recv_direct', '  ↳ Direct RX'], ['nb_sent', 'Total Packets TX'],
+                        ['sent_flood', '  ↳ Flood TX'], ['sent_direct', '  ↳ Direct TX'],
+                        ['direct_dups', 'Direct Duplicates'], ['flood_dups', 'Flood Duplicates'],
+                        ['firmware', 'Firmware'], ['hardware', 'Hardware']
+                    ];
+                    
+                    for (var i = 0; i < statusFields.length; i++) {
+                        var field = statusFields[i];
+                        if (status[field[0]] !== undefined && status[field[0]] !== null) {
+                            addStatusRow(field[1], status[field[0]]);
+                        }
+                    }
+                    
+                    popupContent += '</table></div>';
+                }
+                
+                // Telemetry Data Section (if telemetry exists)
+                if (node.telemetry && node.telemetry.length > 0) {
+                    popupContent += '<div style="margin-bottom: 10px; border-top: 2px solid #CE93D8; padding-top: 10px;">' +
+                        '<h4 style="margin: 5px 0; color: #CE93D8; font-size: 14px;">Telemetry Data</h4>' +
+                        '<table style="width: 100%; font-size: 12px; border-collapse: collapse;">';
+                    
+                    for (var i = 0; i < node.telemetry.length; i++) {
+                        var sensor = node.telemetry[i];
+                        var bg = i % 2 === 0 ? '#2a2a2a' : '#1e1e1e';
+                        var sensorLabel = (sensor.name || sensor.type || 'Sensor ' + (i + 1)) + ':';
+                        var sensorValue = sensor.value;
+                        if (sensor.unit) sensorValue += ' ' + sensor.unit;
+                        popupContent += '<tr style="background: ' + bg + ';"><td style="padding: 4px 8px; font-weight: bold; width: 40%;">' + 
+                            sensorLabel + '</td><td style="padding: 4px 8px;">' + sensorValue + '</td></tr>';
+                    }
+                    
+                    popupContent += '</table></div>';
+                }
+                
+                // Solar Panel Health / Power Status Section
+                if (node.solar_health && Object.keys(node.solar_health).length > 0) {
+                    var solar = node.solar_health;
+                    var isSolar = solar.is_solar !== undefined ? solar.is_solar : false;
+                    var condition = solar.condition || 'unknown';
+                    var sectionTitle = isSolar ? 'Solar Panel Health' : 'Power Status';
+                    var borderColor = isSolar ? '#FFC107' : '#4CAF50';
+                    
+                    var conditionColors = {
+                        'excellent': '#4CAF50', 'good': '#8BC34A', 'fair': '#FFC107',
+                        'poor': '#FF9800', 'critical': '#F44336', 'unknown': '#9E9E9E'
+                    };
+                    var conditionIcons = {
+                        'excellent': '☀️', 'good': '🌤️', 'fair': '⛅',
+                        'poor': '🌥️', 'critical': '⚠️', 'unknown': '❓'
+                    };
+                    
+                    var condColor = conditionColors[condition] || '#9E9E9E';
+                    var condIcon = conditionIcons[condition] || '❓';
+                    
+                    popupContent += '<div style="margin-bottom: 10px; border-top: 2px solid ' + borderColor + '; padding-top: 10px;">' +
+                        '<h4 style="margin: 5px 0; color: #FFD54F; font-size: 14px;">' + sectionTitle + '</h4>';
+                    
+                    if (isSolar && solar.confidence) {
+                        popupContent += '<div style="background: ' + condColor + '; color: #000; padding: 12px; border-radius: 8px; margin-bottom: 10px; text-align: center; font-weight: bold;">' +
+                            condIcon + ' ' + condition.toUpperCase() +
+                            '<div style="font-size: 10px; font-weight: normal; margin-top: 4px;">Confidence: ' + (solar.confidence * 100).toFixed(0) + '%</div></div>';
+                    }
+                    
+                    popupContent += '<table style="width: 100%; font-size: 12px; border-collapse: collapse;">' +
+                        '<tr style="background: #2a2a2a;"><td style="padding: 4px 8px; font-weight: bold; width: 40%;">Power Source:</td><td style="padding: 4px 8px;"><span style="font-weight: bold; color: ' + 
+                        (isSolar ? '#FFC107' : '#4CAF50') + ';">' + (isSolar ? '☀️ Solar' : '🔌 Wired/Stable') + '</span></td></tr>';
+                    
+                    if (solar.current_voltage) {
+                        popupContent += '<tr style="background: #1e1e1e;"><td style="padding: 4px 8px; font-weight: bold;">Current Voltage:</td><td style="padding: 4px 8px;">' +
+                            solar.current_voltage.toFixed(0) + ' mV (' + (solar.current_voltage / 1000).toFixed(2) + ' V)</td></tr>';
+                    }
+                    
+                    var solarFields = [
+                        ['max_voltage', 'Maximum Voltage', ' mV'], ['avg_voltage', 'Average Voltage', ' mV'],
+                        ['min_voltage', 'Minimum Voltage', ' mV'], ['trend', 'Trend', ''],
+                        ['readings_count', 'Readings', ' samples'], ['time_span_days', 'Time Span', ' days']
+                    ];
+                    
+                    var solarRowNum = 0;
+                    for (var i = 0; i < solarFields.length; i++) {
+                        var field = solarFields[i];
+                        if (solar[field[0]] !== undefined && solar[field[0]] !== null) {
+                            var bg = solarRowNum % 2 === 0 ? '#2a2a2a' : '#1e1e1e';
+                            var val = solar[field[0]];
+                            if (typeof val === 'number' && field[2].indexOf('days') > -1) val = val.toFixed(1);
+                            else if (typeof val === 'number' && field[2].indexOf('mV') > -1) val = val.toFixed(0);
+                            else if (typeof val === 'string') val = val.charAt(0).toUpperCase() + val.slice(1);
+                            popupContent += '<tr style="background: ' + bg + ';"><td style="padding: 4px 8px; font-weight: bold;">' + field[1] + ':</td><td style="padding: 4px 8px;">' + val + field[2] + '</td></tr>';
+                            solarRowNum++;
+                        }
+                    }
+                    
+                    if (isSolar && solar.message) {
+                        popupContent += '</table><div style="padding: 8px; margin-top: 8px; background: #2a2a2a; border-radius: 4px; font-size: 11px; color: #b0b0b0;"><b>Assessment:</b> ' + solar.message + '</div></div>';
+                    } else {
+                        popupContent += '</table></div>';
                     }
                 }
                 
-                popupContent += '</table>' +
-                    '<button onclick="filterNodeLinks(\'' + nodeName.replace(/'/g, "\\'") + '\', ' + node.lat + ', ' + node.lon + ')" ' +
-                    'style="margin-top: 10px; width: 100%; padding: 8px; background: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">' +
+                // RF Links Section (from linkMetadata)
+                var nodeLinks = [];
+                for (var i = 0; i < linkMetadata.length; i++) {
+                    var link = linkMetadata[i];
+                    if (link.fromName === nodeName || link.toName === nodeName) {
+                        nodeLinks.push(link);
+                    }
+                }
+                
+                if (nodeLinks.length > 0) {
+                    popupContent += '<div style="margin-bottom: 10px; border-top: 2px solid #FFB74D; padding-top: 10px;">' +
+                        '<h4 style="margin: 5px 0; color: #FFB74D; font-size: 14px;">RF Links (' + nodeLinks.length + ')</h4>' +
+                        '<table style="width: 100%; font-size: 11px; border-collapse: collapse;">' +
+                        '<tr style="background: #424242; color: #e0e0e0;"><th style="padding: 4px 6px; text-align: left;">Node</th>' +
+                        '<th style="padding: 4px 6px; text-align: center;">TX SNR</th><th style="padding: 4px 6px; text-align: center;">RX SNR</th>' +
+                        '<th style="padding: 4px 6px; text-align: right;">Distance</th><th style="padding: 4px 6px; text-align: right;">Heard</th></tr>';
+                    
+                    for (var i = 0; i < nodeLinks.length; i++) {
+                        var link = nodeLinks[i];
+                        var bg = i % 2 === 0 ? '#2a2a2a' : '#1e1e1e';
+                        var peerName = link.fromName === nodeName ? link.toName : link.fromName;
+                        var snr = link.snr !== undefined ? link.snr.toFixed(1) + ' dB' : '-';
+                        var rssi = link.rssi !== undefined ? link.rssi.toFixed(1) + ' dBm' : '-';
+                        var dist = link.distance ? link.distance.toFixed(2) + 'km' : '-';
+                        var heard = link.heard_seconds_ago ? formatTimeAgo(Math.floor(Date.now() / 1000) - link.heard_seconds_ago) : '-';
+                        
+                        // Determine if TX or RX
+                        var txSnr = link.fromName === nodeName ? snr : '-';
+                        var rxSnr = link.fromName === nodeName ? '-' : snr;
+                        
+                        popupContent += '<tr style="background: ' + bg + ';"><td style="padding: 4px 6px; font-size: 10px;">' + peerName + 
+                            '</td><td style="padding: 4px 6px; text-align: center; font-size: 10px;">' + txSnr +
+                            '</td><td style="padding: 4px 6px; text-align: center; font-size: 10px;">' + rxSnr +
+                            '</td><td style="padding: 4px 6px; text-align: right; font-size: 10px;">' + dist +
+                            '</td><td style="padding: 4px 6px; text-align: right; font-size: 10px; color: #666;">' + heard + '</td></tr>';
+                    }
+                    
+                    popupContent += '</table></div>';
+                }
+                
+                // Route Neighbors - Unconfirmed Section
+                if (node.route_neighbors && Object.keys(node.route_neighbors).length > 0) {
+                    var routeNeighbors = node.route_neighbors;
+                    var rnCount = Object.keys(routeNeighbors).length;
+                    
+                    popupContent += '<div style="margin-bottom: 10px; border-top: 2px solid #AB47BC; padding-top: 10px;">' +
+                        '<h4 style="margin: 5px 0; color: #CE93D8; font-size: 14px;">Route Neighbors - Unconfirmed (' + rnCount + ')</h4>' +
+                        '<table style="width: 100%; font-size: 11px; border-collapse: collapse;">' +
+                        '<tr style="background: #424242; color: #e0e0e0;"><th style="padding: 4px 6px; text-align: left;">Prefix</th>' +
+                        '<th style="padding: 4px 6px; text-align: center; width: 80px;">Source</th>' +
+                        '<th style="padding: 4px 6px; text-align: center; width: 60px;">Type</th>' +
+                        '<th style="padding: 4px 6px; text-align: center; width: 50px;">Hop</th>' +
+                        '<th style="padding: 4px 6px; text-align: right; width: 80px;">Last Seen</th></tr>';
+                    
+                    var rnIdx = 0;
+                    for (var prefix in routeNeighbors) {
+                        var rn = routeNeighbors[prefix];
+                        var bg = rnIdx % 2 === 0 ? '#2a2a2a' : '#1e1e1e';
+                        var pktType = rn.source || 'unknown';
+                        var hopPos = rn.hop_position || 0;
+                        var lastSeen = rn.last_seen || 0;
+                        var originName = rn.origin_name || 'unknown';
+                        
+                        var typeColors = {'advert': '#4CAF50', 'trace': '#2196F3', 'message': '#FF9800', 'rf': '#E91E63'};
+                        var typeColor = typeColors[pktType] || '#888';
+                        var hopStr = hopPos > 0 ? hopPos : '-';
+                        var lastSeenStr = lastSeen > 0 ? formatTimeAgo(lastSeen) : 'Unknown';
+                        
+                        popupContent += '<tr style="background: ' + bg + ';"><td style="padding: 4px 6px; font-size: 10px;" title="' + prefix + '">' + prefix.substring(0, 8) +
+                            '</td><td style="padding: 4px 6px; text-align: center; font-size: 10px;">' + originName +
+                            '</td><td style="padding: 4px 6px; text-align: center;"><span style="color: ' + typeColor + '; font-weight: bold;">' + pktType +
+                            '</span></td><td style="padding: 4px 6px; text-align: center;">' + hopStr +
+                            '</td><td style="padding: 4px 6px; text-align: right; font-size: 10px; color: #666;">' + lastSeenStr + '</td></tr>';
+                        rnIdx++;
+                    }
+                    
+                    popupContent += '</table></div>';
+                }
+                
+                // Enhanced Statistics Sections (if node_statistics exists)
+                if (node.statistics) {
+                    var stats = node.statistics;
+                    
+                    // Performance Metrics Section
+                    if (stats.performance && Object.keys(stats.performance).length > 0) {
+                        var perf = stats.performance;
+                        popupContent += '<div style="margin-top: 8px; padding: 8px; background: #1a1a1a; border-left: 3px solid #2196F3; border-radius: 3px;">' +
+                            '<div style="font-weight: bold; color: #2196F3; margin-bottom: 6px; font-size: 11px;">📊 PERFORMANCE METRICS</div>' +
+                            '<table style="width: 100%; border-collapse: collapse; font-size: 10px;">';
+                        
+                        var perfFields = [
+                            ['packet_forward_count', 'Packets Forwarded'], ['message_count', 'Messages Sent'],
+                            ['avg_link_stability', 'Avg Link Stability'], ['airtime_utilization', 'Airtime Used'],
+                            ['network_efficiency', 'Network Efficiency']
+                        ];
+                        
+                        for (var i = 0; i < perfFields.length; i++) {
+                            var field = perfFields[i];
+                            if (perf[field[0]] !== undefined) {
+                                var val = perf[field[0]];
+                                if (typeof val === 'number') val = val < 1 ? val.toFixed(2) : val.toFixed(1);
+                                popupContent += '<tr style="background: #222;"><td style="padding: 3px 6px; color: #aaa;">' + field[1] + ':</td>' +
+                                    '<td style="padding: 3px 6px; text-align: right; font-weight: bold; color: #fff;">' + val + '</td></tr>';
+                            }
+                        }
+                        popupContent += '</table></div>';
+                    }
+                    
+                    // Power Analytics Section
+                    if (stats.power_analytics && Object.keys(stats.power_analytics).length > 0) {
+                        var power = stats.power_analytics;
+                        popupContent += '<div style="margin-top: 8px; padding: 8px; background: #1a1a1a; border-left: 3px solid #FFC107; border-radius: 3px;">' +
+                            '<div style="font-weight: bold; color: #FFC107; margin-bottom: 6px; font-size: 11px;">⚡ POWER ANALYTICS</div>' +
+                            '<table style="width: 100%; border-collapse: collapse; font-size: 10px;">';
+                        
+                        if (power.power_source) {
+                            var pwrIcons = {'solar': '☀️', 'wired': '🔌', 'battery': '🔋'};
+                            var pwrIcon = pwrIcons[power.power_source] || '❓';
+                            popupContent += '<tr style="background: #222;"><td style="padding: 3px 6px; color: #aaa;">Power Source:</td>' +
+                                '<td style="padding: 3px 6px; text-align: right; font-weight: bold; color: #FFC107;">' + pwrIcon + ' ' + 
+                                (power.power_source.charAt(0).toUpperCase() + power.power_source.slice(1)) + '</td></tr>';
+                        }
+                        
+                        var powerFields = [
+                            ['current_voltage', 'Current Voltage', 'mV'], ['avg_voltage', 'Avg Voltage', 'mV'],
+                            ['min_voltage', 'Min Voltage', 'mV'], ['max_voltage', 'Max Voltage', 'mV'],
+                            ['battery_health_score', 'Battery Health', '%'], ['charge_cycles', 'Charge Cycles', ''],
+                            ['avg_charge_rate', 'Avg Charge Rate', 'mV/hr'], ['avg_discharge_rate', 'Avg Discharge Rate', 'mV/hr'],
+                            ['solar_efficiency', 'Solar Efficiency', '']
+                        ];
+                        
+                        for (var i = 0; i < powerFields.length; i++) {
+                            var field = powerFields[i];
+                            if (power[field[0]] !== undefined) {
+                                var val = power[field[0]];
+                                var color = '#fff';
+                                if (typeof val === 'number') {
+                                    if (field[0] === 'battery_health_score') {
+                                        color = val >= 80 ? '#4CAF50' : (val >= 60 ? '#FFC107' : '#F44336');
+                                        val = val.toFixed(1);
+                                    } else if (field[0] === 'min_voltage' && val < 3300) {
+                                        color = '#F44336';
+                                        val = val.toFixed(0);
+                                    } else {
+                                        val = field[2].indexOf('mV') > -1 ? val.toFixed(0) : val.toFixed(2);
+                                    }
+                                }
+                                popupContent += '<tr style="background: #222;"><td style="padding: 3px 6px; color: #aaa;">' + field[1] + ':</td>' +
+                                    '<td style="padding: 3px 6px; text-align: right; font-weight: bold; color: ' + color + ';">' + val + field[2] + '</td></tr>';
+                            }
+                        }
+                        popupContent += '</table></div>';
+                    }
+                    
+                    // Network Role Section
+                    if (stats.network_role && Object.keys(stats.network_role).length > 0) {
+                        var role = stats.network_role;
+                        popupContent += '<div style="margin-top: 8px; padding: 8px; background: #1a1a1a; border-left: 3px solid #9C27B0; border-radius: 3px;">' +
+                            '<div style="font-weight: bold; color: #9C27B0; margin-bottom: 6px; font-size: 11px;">🎯 NETWORK ROLE</div>' +
+                            '<table style="width: 100%; border-collapse: collapse; font-size: 10px;">';
+                        
+                        if (role.role) {
+                            var roleIcons = {'hub': '⭐', 'bridge': '🌉', 'leaf': '🍃', 'relay': '📡', 'isolated': '❌'};
+                            var roleIcon = roleIcons[role.role] || '❓';
+                            popupContent += '<tr style="background: #222;"><td style="padding: 3px 6px; color: #aaa;">Role Type:</td>' +
+                                '<td style="padding: 3px 6px; text-align: right; font-weight: bold; color: #9C27B0;">' + roleIcon + ' ' + 
+                                (role.role.charAt(0).toUpperCase() + role.role.slice(1)) + '</td></tr>';
+                        }
+                        
+                        var roleFields = [
+                            ['centrality_score', 'Centrality Score'], ['betweenness_score', 'Betweenness'],
+                            ['path_appearances', 'Path Appearances'], ['degree', 'Connections']
+                        ];
+                        
+                        for (var i = 0; i < roleFields.length; i++) {
+                            var field = roleFields[i];
+                            if (role[field[0]] !== undefined) {
+                                var val = role[field[0]];
+                                if (typeof val === 'number') val = val.toFixed(2);
+                                popupContent += '<tr style="background: #222;"><td style="padding: 3px 6px; color: #aaa;">' + field[1] + ':</td>' +
+                                    '<td style="padding: 3px 6px; text-align: right; font-weight: bold; color: #fff;">' + val + '</td></tr>';
+                            }
+                        }
+                        popupContent += '</table></div>';
+                    }
+                    
+                    // Coverage & Reliability Section
+                    if ((stats.coverage && Object.keys(stats.coverage).length > 0) || (stats.reliability && Object.keys(stats.reliability).length > 0)) {
+                        var coverage = stats.coverage || {};
+                        var reliability = stats.reliability || {};
+                        popupContent += '<div style="margin-top: 8px; padding: 8px; background: #1a1a1a; border-left: 3px solid #4CAF50; border-radius: 3px;">' +
+                            '<div style="font-weight: bold; color: #4CAF50; margin-bottom: 6px; font-size: 11px;">📶 COVERAGE & RELIABILITY</div>' +
+                            '<table style="width: 100%; border-collapse: collapse; font-size: 10px;">';
+                        
+                        var covFields = [
+                            ['neighbor_count', 'Direct Neighbors', ''], ['avg_snr', 'Avg SNR', 'dB'],
+                            ['min_snr', 'Min SNR', 'dB'], ['max_snr', 'Max SNR', 'dB'],
+                            ['coverage_radius_km', 'Coverage Radius', 'km']
+                        ];
+                        
+                        for (var i = 0; i < covFields.length; i++) {
+                            var field = covFields[i];
+                            if (coverage[field[0]] !== undefined) {
+                                var val = coverage[field[0]];
+                                if (typeof val === 'number') val = val.toFixed(1);
+                                popupContent += '<tr style="background: #222;"><td style="padding: 3px 6px; color: #aaa;">' + field[1] + ':</td>' +
+                                    '<td style="padding: 3px 6px; text-align: right; font-weight: bold; color: #fff;">' + val + field[2] + '</td></tr>';
+                            }
+                        }
+                        
+                        var relFields = [
+                            ['uptime_percentage', 'Uptime', '%'], ['response_reliability', 'Response Rate', '%'],
+                            ['last_seen_minutes', 'Last Seen', 'min ago']
+                        ];
+                        
+                        for (var i = 0; i < relFields.length; i++) {
+                            var field = relFields[i];
+                            if (reliability[field[0]] !== undefined) {
+                                var val = reliability[field[0]];
+                                var color = '#fff';
+                                if (typeof val === 'number') {
+                                    if (field[0] === 'last_seen_minutes') {
+                                        val = Math.floor(val);
+                                    } else {
+                                        if (val >= 90) color = '#4CAF50';
+                                        else if (val >= 70) color = '#FFC107';
+                                        else color = '#F44336';
+                                        val = val.toFixed(1);
+                                    }
+                                }
+                                popupContent += '<tr style="background: #222;"><td style="padding: 3px 6px; color: #aaa;">' + field[1] + ':</td>' +
+                                    '<td style="padding: 3px 6px; text-align: right; font-weight: bold; color: ' + color + ';">' + val + field[2] + '</td></tr>';
+                            }
+                        }
+                        popupContent += '</table></div>';
+                    }
+                    
+                    // Social Network Section
+                    if (stats.social_network && Object.keys(stats.social_network).length > 0) {
+                        var social = stats.social_network;
+                        popupContent += '<div style="margin-top: 8px; padding: 8px; background: #1a1a1a; border-left: 3px solid #FF5722; border-radius: 3px;">' +
+                            '<div style="font-weight: bold; color: #FF5722; margin-bottom: 6px; font-size: 11px;">👥 SOCIAL NETWORK</div>' +
+                            '<table style="width: 100%; border-collapse: collapse; font-size: 10px;">';
+                        
+                        var socialFields = [
+                            ['messages_sent', 'Messages Sent'], ['messages_received', 'Messages Received'],
+                            ['unique_contacts', 'Unique Contacts'], ['contact_frequency', 'Contact Frequency']
+                        ];
+                        
+                        for (var i = 0; i < socialFields.length; i++) {
+                            var field = socialFields[i];
+                            if (social[field[0]] !== undefined) {
+                                var val = social[field[0]];
+                                if (typeof val === 'number') val = val.toFixed(field[0] === 'contact_frequency' ? 2 : 0);
+                                popupContent += '<tr style="background: #222;"><td style="padding: 3px 6px; color: #aaa;">' + field[1] + ':</td>' +
+                                    '<td style="padding: 3px 6px; text-align: right; font-weight: bold; color: #fff;">' + val + '</td></tr>';
+                            }
+                        }
+                        popupContent += '</table></div>';
+                    }
+                }
+                
+                // Filter button - use data attribute to avoid quote escaping issues
+                popupContent += '<button data-node-name="' + nodeName.replace(/"/g, '&quot;') + '" ' +
+                    'data-node-lat="' + node.lat + '" data-node-lon="' + node.lon + '" ' +
+                    'class="filter-node-button" ' +
+                    'style="width: 100%; padding: 8px; background: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">' +
                     'Filter Node Links</button>' +
                     '</div>';
                 
@@ -1514,13 +2043,12 @@
                 var marker = window.L.marker([node.lat, node.lon], {
                     icon: window.L.divIcon({
                         html: markerHtml,
-                        iconSize: [null, null],
                         iconAnchor: [16, 16],
                         className: 'node-marker'
                     })
                 });
                 
-                // Bind popup to marker - clicking marker shows popup
+                // Bind popup to marker (right-click or long-press on mobile)
                 marker.bindPopup(popupContent);
                 
                 // Add marker to appropriate layer group
@@ -1574,8 +2102,64 @@
         
         console.log('Rendered ' + routeCount + ' route polylines (skipped ' + skippedRoutes + ' with invalid coords)');
         
+        // Draw RF links (traces) from linkMetadata
+        var rfLinkGroup = window.L.featureGroup();
+        var linkCount = 0;
+        var skippedLinks = 0;
+        
+        console.log('Drawing RF links from linkMetadata (' + linkMetadata.length + ' entries)...');
+        for (var i = 0; i < linkMetadata.length; i++) {
+            var link = linkMetadata[i];
+            
+            // Skip links with invalid coordinates
+            if (!link.fromLat || !link.fromLon || !link.toLat || !link.toLon ||
+                link.fromLat === 0 || link.fromLon === 0 || link.toLat === 0 || link.toLon === 0) {
+                skippedLinks++;
+                continue;
+            }
+            
+            // Calculate color based on SNR
+            var snr = link.snr || 0;
+            var color;
+            if (snr < -10) {
+                color = '#FF0000'; // Red for poor signal
+            } else if (snr < 0) {
+                color = '#FFA500'; // Orange for weak signal
+            } else if (snr < 5) {
+                color = '#FFFF00'; // Yellow for medium signal
+            } else {
+                color = '#00FF00'; // Green for good signal
+            }
+            
+            var latLngs = [
+                [link.fromLat, link.fromLon],
+                [link.toLat, link.toLon]
+            ];
+            
+            var polyline = window.L.polyline(latLngs, {
+                color: color,
+                weight: 2,
+                opacity: 0.5
+            });
+            
+            // Add popup with link details
+            var popupContent = '<b>RF Link</b><br/>' +
+                link.fromName + ' → ' + link.toName + '<br/>' +
+                'SNR: ' + snr.toFixed(1) + ' dB';
+            if (link.rssi) {
+                popupContent += '<br/>RSSI: ' + link.rssi.toFixed(1) + ' dBm';
+            }
+            
+            polyline.bindPopup(popupContent);
+            rfLinkGroup.addLayer(polyline);
+            linkCount++;
+        }
+        
+        console.log('Rendered ' + linkCount + ' RF link polylines (skipped ' + skippedLinks + ' with invalid coords)');
+        
         // Add groups to map in correct layer order
-        routeGroup.addTo(window.map_obj);  // Routes first (bottom)
+        rfLinkGroup.addTo(window.map_obj);  // RF links first (bottom layer)
+        routeGroup.addTo(window.map_obj);  // Routes second
         userGroup.addTo(window.map_obj);    // User nodes
         repeaterGroup.addTo(window.map_obj); // Repeater nodes
         roomServerGroup.addTo(window.map_obj); // Room server nodes (top)
@@ -2796,6 +3380,9 @@
     
     // Calculate and display statistics
     function calculateStatistics() {
+        console.log('calculateStatistics() called - nodeData entries:', Object.keys(nodeData).length);
+        console.log('calculateStatistics() - linkMetadata entries:', linkMetadata.length);
+        
         var nodeTypes = {user: 0, repeater: 0, roomServer: 0, unknown: 0};
         var highestAirtime = null;
         var highestRxAirtime = null;
@@ -3317,33 +3904,55 @@
         // Count synced nodes (nodes with clock error data)
         var syncedNodes = clockErrorValues.length;
         
-        // Update statistics display
-        document.getElementById('user-count').textContent = nodeTypes.user;
-        document.getElementById('inactive-user-count').textContent = inactiveUsers;
-        document.getElementById('repeater-count').textContent = nodeTypes.repeater;
-        document.getElementById('inactive-repeater-count').textContent = inactiveRepeaters;
-        document.getElementById('room-server-count').textContent = nodeTypes.roomServer;
-        document.getElementById('inactive-roomserver-count').textContent = inactiveRoomServers;
-        document.getElementById('unknown-count').textContent = nodeTypes.unknown;
-        
-        // Update main stats panel
-        document.getElementById('total-nodes-stat').textContent = Object.keys(nodeData).length;
-        document.getElementById('total-links-stat').textContent = linkMetadata.length;
-        document.getElementById('users-stat').textContent = nodeTypes.user;
-        document.getElementById('repeaters-stat').textContent = nodeTypes.repeater;
+        // Update statistics display with error handling
+        try {
+            var elem;
+            elem = document.getElementById('user-count');
+            if (elem) elem.textContent = nodeTypes.user;
+            elem = document.getElementById('inactive-user-count');
+            if (elem) elem.textContent = inactiveUsers;
+            elem = document.getElementById('repeater-count');
+            if (elem) elem.textContent = nodeTypes.repeater;
+            elem = document.getElementById('inactive-repeater-count');
+            if (elem) elem.textContent = inactiveRepeaters;
+            elem = document.getElementById('room-server-count');
+            if (elem) elem.textContent = nodeTypes.roomServer;
+            elem = document.getElementById('inactive-roomserver-count');
+            if (elem) elem.textContent = inactiveRoomServers;
+            elem = document.getElementById('unknown-count');
+            if (elem) elem.textContent = nodeTypes.unknown;
+            
+            // Update main stats panel
+            elem = document.getElementById('total-nodes-stat');
+            if (elem) elem.textContent = Object.keys(nodeData).length;
+            elem = document.getElementById('total-links-stat');
+            if (elem) elem.textContent = linkMetadata.length;
+            elem = document.getElementById('users-stat');
+            if (elem) elem.textContent = nodeTypes.user;
+            elem = document.getElementById('repeaters-stat');
+            if (elem) elem.textContent = nodeTypes.repeater;
+        } catch (e) {
+            console.error('Error updating statistics display:', e);
+        }
         
         // Count duplicate repeater prefixes
-        var duplicatePrefixes = 0;
-        for (var prefix in ownerMap) {
-            if (ownerMap[prefix].repeaters > 1) {
-                duplicatePrefixes++;
+        try {
+            var duplicatePrefixes = 0;
+            for (var prefix in ownerMap) {
+                if (ownerMap[prefix].repeaters > 1) {
+                    duplicatePrefixes++;
+                }
             }
-        }
-        document.getElementById('duplicate-prefixes-stat').textContent = duplicatePrefixes;
-        
-        // Update coverage area
-        if (meshArea !== null) {
-            document.getElementById('coverage-area-stat').textContent = meshArea.toFixed(1) + ' km²';
+            var elem = document.getElementById('duplicate-prefixes-stat');
+            if (elem) elem.textContent = duplicatePrefixes;
+            
+            // Update coverage area
+            if (meshArea !== null) {
+                elem = document.getElementById('coverage-area-stat');
+                if (elem) elem.textContent = meshArea.toFixed(1) + ' km²';
+            }
+        } catch (e) {
+            console.error('Error updating duplicate prefixes/coverage:', e);
         }
         
         // Airtime statistics
