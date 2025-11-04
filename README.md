@@ -1,2 +1,2 @@
 # NSW-Sydney-Meshcore-Map
-This is a test for the NSW Sydney Meshcore Map sourced from the mesh itself
+Map is being worked on and will not be available till completion
