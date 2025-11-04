@@ -1773,6 +1773,10 @@
                 var nodeLinks = [];
                 for (var i = 0; i < linkMetadata.length; i++) {
                     var link = linkMetadata[i];
+                    
+                    // Skip direct TCP connections - only show RF links
+                    if (link.discovery_method === 'direct_connection') continue;
+                    
                     // Look up nodes by pubkey to get names
                     var fromNode = nodeData[link.from_pubkey];
                     var toNode = nodeData[link.to_pubkey];
@@ -2061,13 +2065,8 @@
                     }
                 }
                 
-                // Filter button - use data attribute to avoid quote escaping issues
-                popupContent += '<button data-node-name="' + nodeName.replace(/"/g, '&quot;') + '" ' +
-                    'data-node-lat="' + node.lat + '" data-node-lon="' + node.lon + '" ' +
-                    'class="filter-node-button" ' +
-                    'style="width: 100%; padding: 8px; background: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">' +
-                    'Filter Node Links</button>' +
-                    '</div>';
+                // Close popup content div
+                popupContent += '</div>';
                 
                 // Create DivIcon marker
                 var marker = window.L.marker([node.lat, node.lon], {
@@ -2173,6 +2172,13 @@
         for (var i = 0; i < linkMetadata.length; i++) {
             var link = linkMetadata[i];
             
+            // Skip direct TCP connections - only draw RF links
+            if (link.discovery_method === 'direct_connection') {
+                console.log('  Skipping direct TCP connection: ' + link.from_prefix + ' → ' + link.to_prefix);
+                skippedLinks++;
+                continue;
+            }
+            
             // Look up coordinates from nodeData using pubkeys
             var fromNode = nodeData[link.from_pubkey];
             var toNode = nodeData[link.to_pubkey];
@@ -2196,18 +2202,57 @@
                 continue;
             }
             
-            // Calculate color based on SNR
+            // Calculate color based on SNR using gradient (red→yellow→green)
             var snr = link.snr || 0;
-            var color;
-            if (snr < -10) {
-                color = '#FF0000'; // Red for poor signal
-            } else if (snr < 0) {
-                color = '#FFA500'; // Orange for weak signal
-            } else if (snr < 5) {
-                color = '#FFFF00'; // Yellow for medium signal
+            var snrClamped = Math.max(-20, Math.min(5, snr));
+            var snrNormalized = (snrClamped + 20) / 25.0;
+            
+            var r, g, b;
+            if (snrNormalized < 0.5) {
+                // Red to Yellow
+                var t = snrNormalized * 2;
+                r = 255;
+                g = Math.floor(255 * t);
+                b = 0;
             } else {
-                color = '#00FF00'; // Green for good signal
+                // Yellow to Green
+                var t = (snrNormalized - 0.5) * 2;
+                r = Math.floor(255 * (1 - t));
+                g = 255;
+                b = 0;
             }
+            var color = '#' + r.toString(16).padStart(2, '0') + g.toString(16).padStart(2, '0') + b.toString(16).padStart(2, '0');
+            
+            // Calculate distance using Haversine formula
+            var R = 6371000; // Earth radius in meters
+            var lat1Rad = fromLat * Math.PI / 180;
+            var lat2Rad = toLat * Math.PI / 180;
+            var dLat = (toLat - fromLat) * Math.PI / 180;
+            var dLon = (toLon - fromLon) * Math.PI / 180;
+            var a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                    Math.cos(lat1Rad) * Math.cos(lat2Rad) *
+                    Math.sin(dLon/2) * Math.sin(dLon/2);
+            var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            var distanceM = R * c;
+            var distanceStr = distanceM < 1000 ? distanceM.toFixed(0) + 'm' : (distanceM/1000).toFixed(2) + 'km';
+            
+            // Calculate midpoint for label
+            var midLat = (fromLat + toLat) / 2;
+            var midLon = (fromLon + toLon) / 2;
+            
+            // Calculate bearing for label rotation
+            var dLonRad = (toLon - fromLon) * Math.PI / 180;
+            var x = Math.sin(dLonRad) * Math.cos(lat2Rad);
+            var y = Math.cos(lat1Rad) * Math.sin(lat2Rad) - 
+                    Math.sin(lat1Rad) * Math.cos(lat2Rad) * Math.cos(dLonRad);
+            var bearingRad = Math.atan2(x, y);
+            var bearingDeg = bearingRad * 180 / Math.PI;
+            var angleDeg = bearingDeg - 90;
+            
+            // Keep text upright
+            var displayAngle = angleDeg;
+            if (displayAngle > 90) displayAngle -= 180;
+            else if (displayAngle < -90) displayAngle += 180;
             
             var latLngs = [
                 [fromLat, fromLon],
@@ -2216,7 +2261,7 @@
             
             var polyline = window.L.polyline(latLngs, {
                 color: color,
-                weight: 2,
+                weight: 3 + (snr / 5),
                 opacity: 0.6,
                 className: 'rf-link'
             });
@@ -2228,9 +2273,33 @@
             if (link.rssi) {
                 popupContent += '<br/>RSSI: ' + link.rssi.toFixed(1) + ' dBm';
             }
+            popupContent += '<br/>Distance: ' + distanceStr;
             
             polyline.bindPopup(popupContent);
             rfLinkGroup.addLayer(polyline);
+            
+            // Add SNR label at midpoint
+            var arrow = '→';
+            var labelContent = '<span style="font-size: 20px;">' + arrow + '</span> ' + 
+                              snr.toFixed(1) + 'dB' + 
+                              (link.rssi ? ' | ' + link.rssi.toFixed(1) + 'dBm' : '') + 
+                              ' | ' + distanceStr;
+            
+            var labelIcon = window.L.divIcon({
+                iconAnchor: [0, 0],
+                className: 'snr-label',
+                html: '<div style="' +
+                    'position: absolute; top: -8px; left: 0; font-size: 14px; font-weight: bold; ' +
+                    'color: #ffffff; white-space: nowrap; ' +
+                    'text-shadow: -1px -1px 1px rgba(0,0,0,0.8), 1px -1px 1px rgba(0,0,0,0.8), ' +
+                    '-1px 1px 1px rgba(0,0,0,0.8), 1px 1px 1px rgba(0,0,0,0.8); ' +
+                    'transform: rotate(' + displayAngle + 'deg); transform-origin: 0 0; ' +
+                    'pointer-events: none; cursor: help;">' + labelContent + '</div>'
+            });
+            
+            var labelMarker = window.L.marker([midLat, midLon], { icon: labelIcon });
+            rfLinkGroup.addLayer(labelMarker);
+            
             linkCount++;
         }
         
