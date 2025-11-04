@@ -1394,42 +1394,76 @@
         console.log('nodeData count:', Object.keys(nodeData).length);
         console.log('routeNeighborPairs count:', routeNeighborPairs.length);
         
-        // Create a feature group for network elements
-        var networkGroup = window.L.featureGroup();
+        // Create feature groups for different node types
+        var userGroup = window.L.featureGroup();
+        var repeaterGroup = window.L.featureGroup();
+        var roomServerGroup = window.L.featureGroup();
+        var routeGroup = window.L.featureGroup();
         
-        // Render nodes as markers with awesome-markers
+        // Render nodes as markers with proper styling matching generate_visual_map.py
         var nodeCount = 0;
         for (var nodeName in nodeData) {
             var node = nodeData[nodeName];
             if (node.lat !== undefined && node.lon !== undefined && node.lat !== 0 && node.lon !== 0) {
-                // Determine icon and color based on node type
-                var icon, color;
+                // Determine color and initial based on node type
+                var fillColor, nodeGroup;
                 if (node.type === 2) {
-                    // Repeater
-                    icon = 'repeat';
-                    color = 'red';
+                    // Repeater - red
+                    fillColor = '#FF5733';
+                    nodeGroup = repeaterGroup;
                 } else if (node.type === 3) {
-                    // Room Server
-                    icon = 'server';
-                    color = 'blue';
+                    // Room Server - blue
+                    fillColor = '#3366FF';
+                    nodeGroup = roomServerGroup;
                 } else {
-                    // User device
-                    icon = 'mobile';
-                    color = 'green';
+                    // User - green
+                    fillColor = '#33FF99';
+                    nodeGroup = userGroup;
                 }
                 
-                // Create awesome-marker
-                var awesomeIcon = window.L.AwesomeMarkers.icon({
-                    icon: icon,
-                    prefix: 'fa',
-                    markerColor: color,
-                    iconColor: 'white'
-                });
+                // Extract initials from node name
+                var iconText = nodeName.substring(0, 1);
+                var nodePrefix = nodeName.substring(0, 2);
                 
-                var marker = window.L.marker([node.lat, node.lon], {icon: awesomeIcon});
+                // Create marker HTML matching generate_visual_map.py
+                var markerHtml = '<div style="display: flex; align-items: center; white-space: nowrap; cursor: pointer;" onclick="filterNodeLinks(\'' + nodeName.replace(/'/g, "\\'") + '\', ' + node.lat + ', ' + node.lon + ')">' +
+                    '<div style="' +
+                    'width: 32px;' +
+                    'height: 32px;' +
+                    'border-radius: 50%;' +
+                    'background-color: ' + fillColor + ';' +
+                    'border: 3px solid #BDBDBD;' +
+                    'display: flex;' +
+                    'flex-direction: column;' +
+                    'align-items: center;' +
+                    'justify-content: center;' +
+                    'font-size: 12px;' +
+                    'font-weight: bold;' +
+                    'color: white;' +
+                    'text-shadow: 1px 1px 1px rgba(0,0,0,0.7);' +
+                    'box-shadow: 0 1px 3px rgba(0,0,0,0.4);' +
+                    'flex-shrink: 0;' +
+                    'position: relative;' +
+                    '">' +
+                    '<div style="font-size: 12px; line-height: 1;">' + iconText + '</div>' +
+                    '<div style="font-size: 7px; line-height: 1; margin-top: 1px; opacity: 0.8;">' + nodePrefix + '</div>' +
+                    '</div>' +
+                    '<div style="' +
+                    'font-size: 10px;' +
+                    'font-weight: 600;' +
+                    'color: #e0e0e0;' +
+                    'margin-left: 6px;' +
+                    'background-color: rgba(30, 30, 30, 0.8);' +
+                    'padding: 2px 4px;' +
+                    'border-radius: 2px;' +
+                    'box-shadow: 0 1px 2px rgba(0,0,0,0.4);' +
+                    '">' +
+                    nodeName +
+                    '</div>' +
+                    '</div>';
                 
-                // Add popup with node info - will open on click
-                var popupContent = '<div style="width: 200px;"><b>' + nodeName + '</b><br/>' +
+                // Create popup content
+                var popupContent = '<div style="width: 250px; color: #e0e0e0;"><b>' + nodeName + '</b><br/>' +
                     'Type: ' + (node.type === 1 ? 'User' : node.type === 2 ? 'Repeater' : node.type === 3 ? 'Room Server' : 'Unknown') + '<br/>' +
                     'Lat: ' + node.lat.toFixed(6) + '<br/>' +
                     'Lon: ' + node.lon.toFixed(6) + '<br/>';
@@ -1440,12 +1474,18 @@
                 
                 popupContent += '</div>';
                 
-                marker.bindPopup(popupContent);
-                marker.on('click', function(e) {
-                    e.target.openPopup();
+                // Create DivIcon marker
+                var marker = window.L.marker([node.lat, node.lon], {
+                    icon: window.L.divIcon({
+                        html: markerHtml,
+                        iconSize: [null, null],
+                        iconAnchor: [16, 16],
+                        className: 'node-marker'
+                    })
                 });
                 
-                networkGroup.addLayer(marker);
+                marker.bindPopup(popupContent);
+                nodeGroup.addLayer(marker);
                 nodeCount++;
             }
         }
@@ -1471,24 +1511,28 @@
                 ];
                 
                 var polyline = window.L.polyline(latLngs, {
-                    color: '#FF9800',
+                    color: '#B0B0B0',
                     weight: 2,
                     opacity: 0.6,
-                    dashArray: '5, 5'
+                    dashArray: '5, 10'
                 });
                 
                 // Add popup to polyline
-                polyline.bindPopup(route.fromName + ' → ' + route.toName);
+                polyline.bindPopup('<b>Route Neighbour</b><br/>' + route.fromName + ' → ' + route.toName);
                 
-                networkGroup.addLayer(polyline);
+                routeGroup.addLayer(polyline);
                 routeCount++;
             }
         }
         
         console.log('Rendered ' + routeCount + ' route polylines');
         
-        // Add the network group to the map
-        networkGroup.addTo(window.map_obj);
+        // Add groups to map in correct layer order
+        routeGroup.addTo(window.map_obj);  // Routes first (bottom)
+        userGroup.addTo(window.map_obj);    // User nodes
+        repeaterGroup.addTo(window.map_obj); // Repeater nodes
+        roomServerGroup.addTo(window.map_obj); // Room server nodes (top)
+        
         console.log('Network visualization complete!');
     }
     
