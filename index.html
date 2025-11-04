@@ -1273,6 +1273,10 @@
     
     // Load all data from external JSON file
     if (typeof fetch !== 'undefined') {
+        // Load network data from JSON and initialize visualization
+        // FIX: Removed duplicate node population to eliminate doubled nodes on map
+        // FIX: Statistics now calculated immediately after data loads (before renderNetworkVisualization)
+        // FIX: renderNetworkVisualization waits for both data AND map to be ready
         fetch('network_map_data.json')
             .then(response => {
                 if (!response.ok) {
@@ -1286,6 +1290,7 @@
                 linkMetadata = data.links || [];
                 pathToPair = data.path_to_pair || [];
                 routePathToPair = data.route_path_to_pair || [];
+                // Use the main 'nodes' object from JSON (keyed by pubkey), NOT nodeDataList
                 nodeData = data.nodes || {};
                 nodeDataList = data.node_data_list || [];
                 routeNeighborMetadata = data.routeNeighborMetadata || {};
@@ -1297,14 +1302,12 @@
                     linkData[index] = linkData_item;
                 });
                 
-                // Populate nodeData from nodeDataList
-                nodeDataList.forEach(function(node) {
-                    nodeData[node.name] = node;
-                });
+                // DO NOT populate nodeData from nodeDataList - causes duplicates
+                // Keep nodeData as-is from JSON (keyed by pubkey, contains full data)
                 
                 // Notify that data is loaded
                 window.networkDataLoaded = true;
-                console.log('Data initialized: ' + linkMetadata.length + ' links, ' + Object.keys(nodeData).length + ' nodes, ' + routePathToPair.length + ' route paths');
+                console.log('Data initialized: ' + linkMetadata.length + ' links, ' + Object.keys(nodeData).length + ' nodes, ' + routeNeighborPairsList.length + ' route neighbor pairs');
                 
                 // Update statistics display
                 if (typeof calculateStatistics === 'function') {
@@ -1314,6 +1317,9 @@
                 } else {
                     console.error('calculateStatistics function not found!');
                 }
+                
+                // Render the network visualization
+                renderNetworkVisualization();
             })
             .catch(error => {
                 console.error('Error loading network map data:', error);
@@ -1330,10 +1336,8 @@
     // Populate routeNeighborPairs
     routeNeighborPairs = routeNeighborPairsList;
     
-    // Populate nodeData
-    nodeDataList.forEach(function(node) {
-        nodeData[node.name] = node;
-    });
+    // NOTE: nodeData is already populated from JSON in fetch callback
+    // DO NOT re-populate from nodeDataList to avoid duplicates
     
     // Store route neighbor data globally
     window.routeNeighborData = routeNeighborMetadata;
