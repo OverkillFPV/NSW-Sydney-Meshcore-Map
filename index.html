@@ -1292,9 +1292,25 @@
                 routeNeighborPairsList = data.route_neighbor_pairs || [];
                 routeNeighborPairs = routeNeighborPairsList;
                 
+                // Populate linkData with indices
+                linkMetadata.forEach(function(linkData_item, index) {
+                    linkData[index] = linkData_item;
+                });
+                
+                // Populate nodeData from nodeDataList
+                nodeDataList.forEach(function(node) {
+                    nodeData[node.name] = node;
+                });
+                
                 // Notify that data is loaded
                 window.networkDataLoaded = true;
                 console.log('Data initialized: ' + linkMetadata.length + ' links, ' + Object.keys(nodeData).length + ' nodes, ' + routePathToPair.length + ' route paths');
+                
+                // Update statistics display
+                if (typeof calculateStatistics === 'function') {
+                    calculateStatistics();
+                    console.log('Statistics updated from network data');
+                }
             })
             .catch(error => {
                 console.error('Error loading network map data:', error);
@@ -1362,6 +1378,89 @@
     console.log('Injected ' + routePathToPair.length + ' route-path-to-pair mappings');
     console.log('Injected ' + Object.keys(nodeData).length + ' node entries');
     console.log('Injected route neighbor data for ' + Object.keys(routeNeighborMetadata).length + ' nodes');
+    
+    // Function to render nodes and links on the map from network_map_data.json
+    function renderNetworkVisualization() {
+        if (!window.networkDataLoaded || !window.map_obj) {
+            console.log('Waiting for data and map to be ready...');
+            setTimeout(renderNetworkVisualization, 500);
+            return;
+        }
+        
+        console.log('Rendering network visualization from JSON data...');
+        
+        // Create a feature group for network elements
+        var networkGroup = window.L.featureGroup();
+        
+        // Render nodes as markers
+        var nodeCount = 0;
+        for (var nodeName in nodeData) {
+            var node = nodeData[nodeName];
+            if (node.lat !== undefined && node.lon !== undefined) {
+                // Create a simple circle marker for each node
+                var marker = window.L.circleMarker([node.lat, node.lon], {
+                    radius: 8,
+                    fillColor: node.type === 2 ? '#FF5733' : (node.type === 3 ? '#3366FF' : '#33FF99'),
+                    color: '#000',
+                    weight: 1,
+                    opacity: 0.8,
+                    fillOpacity: 0.6
+                });
+                
+                // Add popup with node info
+                var popupText = '<b>' + nodeName + '</b><br/>';
+                popupText += 'Type: ' + (node.type === 1 ? 'User' : node.type === 2 ? 'Repeater' : node.type === 3 ? 'Room Server' : 'Unknown') + '<br/>';
+                if (node.status) {
+                    popupText += 'SNR: ' + (node.status.snr || 'N/A') + ' dB<br/>';
+                }
+                
+                marker.bindPopup(popupText);
+                networkGroup.addLayer(marker);
+                nodeCount++;
+            }
+        }
+        
+        // Render links as polylines
+        var linkCount = 0;
+        if (routePathToPair && routePathToPair.length > 0) {
+            for (var i = 0; i < routePathToPair.length; i++) {
+                var linkPath = routePathToPair[i];
+                if (linkPath && linkPath.length > 1) {
+                    // Convert path coordinates to Leaflet format
+                    var latLngs = [];
+                    for (var j = 0; j < linkPath.length; j++) {
+                        if (linkPath[j] && linkPath[j].length === 2) {
+                            latLngs.push([linkPath[j][0], linkPath[j][1]]);
+                        }
+                    }
+                    
+                    if (latLngs.length > 1) {
+                        var polyline = window.L.polyline(latLngs, {
+                            color: '#888888',
+                            weight: 2,
+                            opacity: 0.6,
+                            dashArray: '5, 5'
+                        });
+                        networkGroup.addLayer(polyline);
+                        linkCount++;
+                    }
+                }
+            }
+        }
+        
+        // Add the network group to the map
+        networkGroup.addTo(window.map_obj);
+        console.log('Rendered ' + nodeCount + ' nodes and ' + linkCount + ' links');
+    }
+    
+    // Start rendering when data is loaded
+    window.addEventListener('load', function() {
+        if (window.networkDataLoaded) {
+            renderNetworkVisualization();
+        } else {
+            setTimeout(renderNetworkVisualization, 1000);
+        }
+    });
     </script>
     
     
@@ -3096,6 +3195,26 @@
         document.getElementById('room-server-count').textContent = nodeTypes.roomServer;
         document.getElementById('inactive-roomserver-count').textContent = inactiveRoomServers;
         document.getElementById('unknown-count').textContent = nodeTypes.unknown;
+        
+        // Update main stats panel
+        document.getElementById('total-nodes-stat').textContent = Object.keys(nodeData).length;
+        document.getElementById('total-links-stat').textContent = linkMetadata.length;
+        document.getElementById('users-stat').textContent = nodeTypes.user;
+        document.getElementById('repeaters-stat').textContent = nodeTypes.repeater;
+        
+        // Count duplicate repeater prefixes
+        var duplicatePrefixes = 0;
+        for (var prefix in ownerMap) {
+            if (ownerMap[prefix].repeaters > 1) {
+                duplicatePrefixes++;
+            }
+        }
+        document.getElementById('duplicate-prefixes-stat').textContent = duplicatePrefixes;
+        
+        // Update coverage area
+        if (meshArea !== null) {
+            document.getElementById('coverage-area-stat').textContent = meshArea.toFixed(1) + ' km²';
+        }
         
         // Airtime statistics
         if (highestAirtime) {
@@ -5403,27 +5522,27 @@
                 <div class="stat-title"><span class="stat-title-icon">🌐</span>Network Overview</div>
                 <div class="stat-row">
                     <span class="stat-label">Total Nodes:</span>
-                    <span class="stat-value">180</span>
+                    <span class="stat-value" id="total-nodes-stat">0</span>
                 </div>
                 <div class="stat-row">
                     <span class="stat-label">Total Links:</span>
-                    <span class="stat-value">209</span>
+                    <span class="stat-value" id="total-links-stat">0</span>
                 </div>
                 <div class="stat-row">
                     <span class="stat-label">Users:</span>
-                    <span class="stat-value">65</span>
+                    <span class="stat-value" id="users-stat">0</span>
                 </div>
                 <div class="stat-row">
                     <span class="stat-label">Repeaters:</span>
-                    <span class="stat-value">98</span>
+                    <span class="stat-value" id="repeaters-stat">0</span>
                 </div>
                 <div class="stat-row">
                     <span class="stat-label" title="Number of repeaters sharing the same 2-character prefix">Duplicate Repeater Prefixes:</span>
-                    <span class="stat-value warning">4</span>
+                    <span class="stat-value warning" id="duplicate-prefixes-stat">0</span>
                 </div>
                 <div class="stat-row">
                     <span class="stat-label">Coverage Area:</span>
-                    <span class="stat-value">269603.4 km²</span>
+                    <span class="stat-value" id="coverage-area-stat">N/A</span>
                 </div>
             </div>
             
