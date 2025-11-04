@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Sydney Meshcore Network Map</title>
+    
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+          integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+          crossorigin=""/>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        html, body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            position: fixed;
+        }
+        #map {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            width: 100%;
+            height: 100%;
+        }
+        #loading {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.85);
+            color: white;
+            padding: 30px 50px;
+            border-radius: 10px;
+            font-family: Arial, sans-serif;
+            font-size: 18px;
+            z-index: 10000;
+            text-align: center;
+        }
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto 0;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        #error {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(255, 0, 0, 0.9);
+            color: white;
+            padding: 30px 50px;
+            border-radius: 10px;
+            font-family: Arial, sans-serif;
+            z-index: 10001;
+            text-align: center;
+            max-width: 80%;
+        }
+    </style>
+</head>
+<body>
+    <div id="loading">
+        <div>Loading Network Map Data...</div>
+        <div class="spinner"></div>
+    </div>
+    <div id="error"></div>
+    <div id="map"></div>
+
+    <!-- Leaflet JavaScript -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+            integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+            crossorigin=""></script>
+    
+    <script>
+        // Global variables
+        window.map_obj = null;
+        window.networkData = null;
+        window.coverageDataCache = {};
+        window.coverageCircles = {};
+        window.coverageCirclesVisible = false;
+        window.currentFilter = null;
+        
+        // Load the network data JSON
+        function loadNetworkData() {
+            fetch('network_map_data.json')
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Failed to load network data: ' + response.statusText);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('Network data loaded successfully');
+                    window.networkData = data;
+                    document.getElementById('loading').style.display = 'none';
+                    initializeMap();
+                })
+                .catch(error => {
+                    console.error('Error loading network data:', error);
+                    document.getElementById('loading').style.display = 'none';
+                    document.getElementById('error').style.display = 'block';
+                    document.getElementById('error').innerHTML = 
+                        '<h2>⚠️ Error Loading Map Data</h2>' +
+                        '<p style="margin-top: 10px;">' + error.message + '</p>' +
+                        '<p style="margin-top: 10px; font-size: 14px;">Please ensure network_map_data.json is available.</p>';
+                });
+        }
+        
+        // Initialize the map once data is loaded
+        function initializeMap() {
+            const data = window.networkData;
+            
+            // Calculate center from nodes
+            let center_lat, center_lon;
+            if (data.nodes && Object.keys(data.nodes).length > 0) {
+                const lats = [];
+                const lons = [];
+                for (const node of Object.values(data.nodes)) {
+                    if (node.lat && node.lon) {
+                        lats.push(node.lat);
+                        lons.push(node.lon);
+                    }
+                }
+                if (lats.length > 0) {
+                    center_lat = lats.reduce((a, b) => a + b, 0) / lats.length;
+                    center_lon = lons.reduce((a, b) => a + b, 0) / lons.length;
+                } else {
+                    center_lat = -33.8688;
+                    center_lon = 151.2093;
+                }
+            } else {
+                center_lat = -33.8688;
+                center_lon = 151.2093;
+            }
+            
+            // Create the map
+            window.map_obj = L.map('map', {
+                center: [center_lat, center_lon],
+                zoom: 11,
+                zoomControl: true,
+                maxZoom: 18
+            });
+            
+            // Add tile layer
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+                maxZoom: 18
+            }).addTo(window.map_obj);
+            
+            console.log('Map initialized at:', center_lat, center_lon);
+            
+            // Now render all map elements
+            renderMapElements();
+        }
+        
+        // Render all map elements (nodes, links, etc.)
+        function renderMapElements() {
+            console.log('Rendering map elements...');
+            
+            // This is where we'll add nodes, links, coverage, etc.
+            // For now, just show a simple message
+            const data = window.networkData;
+            console.log('Loaded data contains:');
+            console.log('  - Nodes:', Object.keys(data.nodes || {}).length);
+            console.log('  - Links:', (data.links || []).length);
+            console.log('  - Coverage data:', Object.keys(data.coverage || {}).length);
+            
+            // Add markers for nodes
+            if (data.nodes) {
+                for (const [pubkey, node] of Object.entries(data.nodes)) {
+                    if (node.lat && node.lon) {
+                        const marker = L.circleMarker([node.lat, node.lon], {
+                            radius: 8,
+                            fillColor: getNodeColor(node.type),
+                            color: '#fff',
+                            weight: 2,
+                            opacity: 1,
+                            fillOpacity: 0.8
+                        }).addTo(window.map_obj);
+                        
+                        marker.bindPopup('<b>' + (node.name || 'Unknown') + '</b><br>Type: ' + getNodeTypeName(node.type));
+                    }
+                }
+            }
+            
+            // Add links
+            if (data.links) {
+                for (const link of data.links) {
+                    // Find nodes by pubkey prefix
+                    const fromNode = findNodeByPrefix(link.from_prefix);
+                    const toNode = data.nodes[link.to_pubkey];
+                    
+                    if (fromNode && toNode && fromNode.lat && fromNode.lon && toNode.lat && toNode.lon) {
+                        const snr = link.snr || 0;
+                        const color = snrToColor(snr);
+                        
+                        L.polyline([
+                            [fromNode.lat, fromNode.lon],
+                            [toNode.lat, toNode.lon]
+                        ], {
+                            color: color,
+                            weight: 3,
+                            opacity: 0.6
+                        }).addTo(window.map_obj).bindPopup(
+                            '<b>Link:</b> ' + (fromNode.name || '?') + ' → ' + (toNode.name || '?') + 
+                            '<br>SNR: ' + snr + ' dB'
+                        );
+                    }
+                }
+            }
+            
+            console.log('Map elements rendered');
+        }
+        
+        // Helper functions
+        function getNodeColor(type) {
+            const colors = {
+                0: '#808080', // Unknown - gray
+                1: '#3388ff', // User - blue
+                2: '#ff3333', // Repeater - red
+                3: '#33cc33'  // Room Server - green
+            };
+            return colors[type] || '#808080';
+        }
+        
+        function getNodeTypeName(type) {
+            const names = {
+                0: 'Unknown',
+                1: 'User',
+                2: 'Repeater',
+                3: 'Room Server'
+            };
+            return names[type] || 'Unknown';
+        }
+        
+        function snrToColor(snr) {
+            const clamped = Math.max(-20, Math.min(5, snr));
+            const normalized = (clamped + 20) / 25.0;
+            
+            let r, g;
+            if (normalized < 0.5) {
+                const t = normalized * 2;
+                r = 255;
+                g = Math.floor(255 * t);
+            } else {
+                const t = (normalized - 0.5) * 2;
+                r = Math.floor(255 * (1 - t));
+                g = 255;
+            }
+            
+            return '#' + r.toString(16).padStart(2, '0') + g.toString(16).padStart(2, '0') + '00';
+        }
+        
+        function findNodeByPrefix(prefix) {
+            if (!window.networkData || !window.networkData.nodes) return null;
+            for (const [pubkey, node] of Object.entries(window.networkData.nodes)) {
+                if (pubkey.startsWith(prefix)) {
+                    return node;
+                }
+            }
+            return null;
+        }
+        
+        // Start loading data when page loads
+        window.addEventListener('load', loadNetworkData);
+    </script>
+</body>
+</html>
